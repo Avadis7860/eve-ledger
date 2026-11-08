@@ -59,6 +59,7 @@ export class EsiClient {
       });
 
       if (response.status === 401 && !refreshedAfterUnauthorized) {
+        await response.body?.cancel();
         this.tokens.invalidate();
         refreshedAfterUnauthorized = true;
         continue;
@@ -98,9 +99,14 @@ export class EsiClient {
       }
 
       const retryAfter = Number(response.headers.get("Retry-After"));
-      const wait = Number.isFinite(retryAfter) && retryAfter > 0
-        ? retryAfter * 1000
-        : Math.min(30_000, 1_000 * 2 ** (attempt - 1));
+      const errorLimitReset = Number(response.headers.get("X-Esi-Error-Limit-Reset"));
+      const wait =
+        Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : response.status === 420 && Number.isFinite(errorLimitReset) && errorLimitReset > 0
+            ? (errorLimitReset + 1) * 1000
+            : Math.min(30_000, 1_000 * 2 ** (attempt - 1));
+      await response.body?.cancel();
       await this.sleep(wait);
     }
 
