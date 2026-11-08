@@ -2,7 +2,6 @@ import type {
   EsiResponse,
   WalletBalance,
   WalletJournalEntry,
-  WalletTransaction,
 } from "../esi/contracts.js";
 import {
   parseWalletBalance,
