@@ -89,7 +89,7 @@ async function syncTransactions(
         { ...checkpoint, latestId: nextLatest }
       );
       checkpoint = { ...checkpoint, latestId: nextLatest };
-      stored += parsed.length;
+      stored += parsed.length - (cursor === undefined ? 0 : 1);
 
       if (parsed.length === 0 || crossedHighWater || (cursor !== undefined && parsed.length === 1)) {
         break;
@@ -149,7 +149,7 @@ async function syncTransactions(
         nextCheckpoint
       );
       checkpoint = nextCheckpoint;
-      stored += parsed.length;
+      stored += parsed.length - (cursor === null ? 0 : 1);
 
       if (exhausted) break;
       cursor = nextCursor;
