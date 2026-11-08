@@ -7,8 +7,11 @@ const environmentSchema = z.object({
   ESI_CLIENT_SECRET: z.string().min(1),
   ESI_REFRESH_TOKEN: z.string().min(1),
   TOKEN_ENCRYPTION_KEY: z.string().min(1),
-  ESI_COMPATIBILITY_DATE: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).default("2026-11-09"),
-  ESI_USER_AGENT: z.string().min(8).default("EVE-Ledger/0.1")
+  ESI_COMPATIBILITY_DATE: z
+    .string()
+    .regex(/^\\d{4}-\\d{2}-\\d{2}$/)
+    .default("2026-11-09"),
+  ESI_USER_AGENT: z.string().min(8).default("EVE-Ledger/0.1"),
 });
 
 export type AppConfig = {
@@ -25,7 +28,9 @@ export type AppConfig = {
 export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
   const parsed = environmentSchema.safeParse(environment);
   if (!parsed.success) {
-    const fields = parsed.error.issues.map((issue) => issue.path.join(".")).join(", ");
+    const fields = parsed.error.issues
+      .map((issue) => issue.path.join("."))
+      .join(", ");
     throw new Error(`Invalid environment configuration: ${fields}`);
   }
 
@@ -42,6 +47,6 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     initialRefreshToken: parsed.data.ESI_REFRESH_TOKEN,
     tokenEncryptionKey: key,
     compatibilityDate: parsed.data.ESI_COMPATIBILITY_DATE,
-    userAgent: parsed.data.ESI_USER_AGENT
+    userAgent: parsed.data.ESI_USER_AGENT,
   };
 }

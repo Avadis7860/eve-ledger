@@ -5,12 +5,14 @@
 **Implementation status:** staged on `feat/m0-m1-esi-wallet-ingestion`; CI and PostgreSQL execution still need verification.
 
 Implemented:
+
 - TypeScript strict project structure, linting, formatting, unit-test runner, and GitHub Actions CI workflow.
 - Local environment validation and secret-handling baseline.
 - Versioned PostgreSQL migration and schema migration runner.
 - Encrypted storage for rotated ESI refresh tokens.
 
 Completion gate:
+
 - GitHub Actions quality workflow is green.
 - Database migration is exercised against a real PostgreSQL instance.
 - A clean local install is reproducible from a committed dependency lockfile.
@@ -20,6 +22,7 @@ Completion gate:
 **Implementation status:** first vertical slice implemented; live ESI authorization and source behavior are not yet validated.
 
 Implemented:
+
 - EVE SSO refresh-token provider with least-scope wallet authorization, access-token caching, and refresh-token rotation support.
 - Authenticated versioned ESI client with compatibility-date pinning, bounded transient retries, and ESI error-budget handling.
 - Division 1 transactions, journal pages, and balance endpoint adapters.
@@ -29,6 +32,7 @@ Implemented:
 - Tests for pagination, token refresh, numeric precision, and partial-run behavior.
 
 Completion gate:
+
 - CI green and unit coverage stable.
 - Migrations and store behavior verified against PostgreSQL.
 - Valid corporation ID, scope, and required corporation role confirmed through a real ESI read.

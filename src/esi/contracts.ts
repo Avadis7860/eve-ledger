@@ -46,7 +46,10 @@ export type EsiResponse<T> = {
   };
 };
 
-export function asRecord(value: unknown, label: string): Record<string, unknown> {
+export function asRecord(
+  value: unknown,
+  label: string,
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`${label} must be an object`);
   }
@@ -73,18 +76,22 @@ function numericString(value: unknown, field: string, integer = false): string {
 }
 
 function nullableNumericString(value: unknown, field: string): string | null {
-  return value === null || value === undefined ? null : numericString(value, field, true);
+  return value === null || value === undefined
+    ? null
+    : numericString(value, field, true);
 }
 
 function nullableText(value: unknown, field: string): string | null {
   if (value === null || value === undefined) return null;
-  if (typeof value !== "string") throw new Error(`ESI field ${field} must be text or null`);
+  if (typeof value !== "string")
+    throw new Error(`ESI field ${field} must be text or null`);
   return value;
 }
 
 export function parseWalletTransaction(value: unknown): WalletTransaction {
   const row = asRecord(value, "wallet transaction");
-  if (typeof row.is_buy !== "boolean") throw new Error("ESI field is_buy must be boolean");
+  if (typeof row.is_buy !== "boolean")
+    throw new Error("ESI field is_buy must be boolean");
   return {
     transactionId: numericString(row.transaction_id, "transaction_id", true),
     journalRefId: nullableNumericString(row.journal_ref_id, "journal_ref_id"),
@@ -94,7 +101,7 @@ export function parseWalletTransaction(value: unknown): WalletTransaction {
     locationId: numericString(row.location_id, "location_id", true),
     quantity: numericString(row.quantity, "quantity", true),
     typeId: Number(numericString(row.type_id, "type_id", true)),
-    unitPrice: numericString(row.unit_price, "unit_price")
+    unitPrice: numericString(row.unit_price, "unit_price"),
   };
 }
 
@@ -105,13 +112,19 @@ export function parseWalletJournalEntry(value: unknown): WalletJournalEntry {
     date: requiredString(row.date, "date"),
     refType: requiredString(row.ref_type, "ref_type"),
     firstPartyId: nullableNumericString(row.first_party_id, "first_party_id"),
-    secondPartyId: nullableNumericString(row.second_party_id, "second_party_id"),
-    amount: row.amount === null || row.amount === undefined ? null : numericString(row.amount, "amount"),
+    secondPartyId: nullableNumericString(
+      row.second_party_id,
+      "second_party_id",
+    ),
+    amount:
+      row.amount === null || row.amount === undefined
+        ? null
+        : numericString(row.amount, "amount"),
     balance: numericString(row.balance, "balance"),
     reason: nullableText(row.reason, "reason"),
     contextId: nullableNumericString(row.context_id, "context_id"),
     contextIdType: nullableText(row.context_id_type, "context_id_type"),
-    description: nullableText(row.description, "description")
+    description: nullableText(row.description, "description"),
   };
 }
 
@@ -123,6 +136,6 @@ export function parseWalletBalance(value: unknown): WalletBalance {
   }
   return {
     division,
-    balance: numericString(row.balance, "balance")
+    balance: numericString(row.balance, "balance"),
   };
 }

@@ -47,6 +47,7 @@ Route: `GET /v1/corporations/{corporation_id}/wallets/`
 ## Request and response evidence
 
 Each successful response records:
+
 - endpoint, query parameters, page or cursor, HTTP status, and retrieval time;
 - ETag, Last-Modified, Expires, X-Pages, and ESI error-budget headers when present;
 - exact response body and SHA-256 digest.

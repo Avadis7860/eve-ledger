@@ -9,7 +9,7 @@ export class EsiHttpError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    readonly endpoint: string
+    readonly endpoint: string,
   ) {
     super(message);
     this.name = "EsiHttpError";
@@ -29,16 +29,20 @@ export class EsiClient {
     private readonly tokens: EsiTokenProvider,
     private readonly request: typeof fetch = fetch,
     private readonly sleep: (milliseconds: number) => Promise<void> = (ms) =>
-      new Promise((resolve) => setTimeout(resolve, ms))
+      new Promise((resolve) => setTimeout(resolve, ms)),
   ) {}
 
-  async get<T>(path: string, options: RequestOptions = {}): Promise<EsiResponse<T>> {
+  async get<T>(
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<EsiResponse<T>> {
     const url = new URL(path, ESI_BASE_URL);
     url.searchParams.set("datasource", "tranquility");
     for (const [key, value] of Object.entries(options.query ?? {})) {
       url.searchParams.set(key, value);
     }
-    if (options.page !== undefined) url.searchParams.set("page", String(options.page));
+    if (options.page !== undefined)
+      url.searchParams.set("page", String(options.page));
     if (options.cursor !== undefined && options.cursor !== null) {
       url.searchParams.set("from_id", options.cursor);
     }
@@ -54,8 +58,8 @@ export class EsiClient {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
           "User-Agent": this.config.userAgent,
-          "X-Compatibility-Date": this.config.compatibilityDate
-        }
+          "X-Compatibility-Date": this.config.compatibilityDate,
+        },
       });
 
       if (response.status === 401 && !refreshedAfterUnauthorized) {
@@ -69,8 +73,15 @@ export class EsiClient {
         const rawBody = await response.text();
         const xPagesHeader = response.headers.get("X-Pages");
         const xPages = xPagesHeader === null ? null : Number(xPagesHeader);
-        if (xPagesHeader !== null && (!Number.isInteger(xPages) || Number(xPages) < 1)) {
-          throw new EsiHttpError("ESI returned an invalid X-Pages header", response.status, path);
+        if (
+          xPagesHeader !== null &&
+          (!Number.isInteger(xPages) || Number(xPages) < 1)
+        ) {
+          throw new EsiHttpError(
+            "ESI returned an invalid X-Pages header",
+            response.status,
+            path,
+          );
         }
 
         return {
@@ -84,26 +95,32 @@ export class EsiClient {
             expires: response.headers.get("Expires"),
             xPages,
             errorLimitRemain: response.headers.get("X-Esi-Error-Limit-Remain"),
-            errorLimitReset: response.headers.get("X-Esi-Error-Limit-Reset")
-          }
+            errorLimitReset: response.headers.get("X-Esi-Error-Limit-Reset"),
+          },
         };
       }
 
-      const retryable = [420, 429, 500, 502, 503, 504].includes(response.status);
+      const retryable = [420, 429, 500, 502, 503, 504].includes(
+        response.status,
+      );
       if (!retryable || attempt === maxAttempts) {
         throw new EsiHttpError(
           `ESI request failed with HTTP ${response.status}`,
           response.status,
-          path
+          path,
         );
       }
 
       const retryAfter = Number(response.headers.get("Retry-After"));
-      const errorLimitReset = Number(response.headers.get("X-Esi-Error-Limit-Reset"));
+      const errorLimitReset = Number(
+        response.headers.get("X-Esi-Error-Limit-Reset"),
+      );
       const wait =
         Number.isFinite(retryAfter) && retryAfter > 0
           ? retryAfter * 1000
-          : response.status === 420 && Number.isFinite(errorLimitReset) && errorLimitReset > 0
+          : response.status === 420 &&
+              Number.isFinite(errorLimitReset) &&
+              errorLimitReset > 0
             ? (errorLimitReset + 1) * 1000
             : Math.min(30_000, 1_000 * 2 ** (attempt - 1));
       await response.body?.cancel();
@@ -116,14 +133,14 @@ export class EsiClient {
   getTransactions(corporationId: string, fromId?: string) {
     return this.get<unknown[]>(
       `/v1/corporations/${corporationId}/wallets/1/transactions/`,
-      fromId === undefined ? {} : { cursor: fromId }
+      fromId === undefined ? {} : { cursor: fromId },
     );
   }
 
   getJournal(corporationId: string, page: number) {
     return this.get<unknown[]>(
       `/v4/corporations/${corporationId}/wallets/1/journal/`,
-      { page }
+      { page },
     );
   }
 

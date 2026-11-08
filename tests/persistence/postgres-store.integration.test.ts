@@ -1,8 +1,14 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { Pool } from "pg";
-import type { EsiResponse, WalletTransaction } from "../../src/esi/contracts.js";
+import type {
+  EsiResponse,
+  WalletTransaction,
+} from "../../src/esi/contracts.js";
 import { PostgresWalletStore } from "../../src/persistence/postgres-wallet-store.js";
-import type { EvidenceInput, TransactionCheckpoint } from "../../src/persistence/types.js";
+import type {
+  EvidenceInput,
+  TransactionCheckpoint,
+} from "../../src/persistence/types.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const databaseSuite = databaseUrl ? describe : describe.skip;
@@ -35,8 +41,8 @@ databaseSuite("PostgresWalletStore integration", () => {
         expires: null,
         xPages: null,
         errorLimitRemain: "100",
-        errorLimitReset: "0"
-      }
+        errorLimitReset: "0",
+      },
     };
   }
 
@@ -50,7 +56,7 @@ databaseSuite("PostgresWalletStore integration", () => {
       locationId: "60003760",
       quantity: "2",
       typeId: 34,
-      unitPrice
+      unitPrice,
     };
   }
 
@@ -64,7 +70,7 @@ databaseSuite("PostgresWalletStore integration", () => {
       pageNumber: null,
       cursorValue: null,
       response,
-      recordCount: 1
+      recordCount: 1,
     };
     return store.captureResponse(input);
   }
@@ -74,35 +80,49 @@ databaseSuite("PostgresWalletStore integration", () => {
     const checkpoint: TransactionCheckpoint = {
       latestId: "9007199254740993",
       backfillCursor: "9007199254740993",
-      backfillComplete: false
+      backfillComplete: false,
     };
 
     const firstEvidence = await capture(runId, '{"observation":"first"}');
-    await store.saveTransactionsPage(firstEvidence, [transaction()], checkpoint);
+    await store.saveTransactionsPage(
+      firstEvidence,
+      [transaction()],
+      checkpoint,
+    );
 
-    const duplicateEvidence = await capture(runId, '{"observation":"replayed"}');
-    await store.saveTransactionsPage(duplicateEvidence, [transaction()], checkpoint);
+    const duplicateEvidence = await capture(
+      runId,
+      '{"observation":"replayed"}',
+    );
+    await store.saveTransactionsPage(
+      duplicateEvidence,
+      [transaction()],
+      checkpoint,
+    );
 
-    const conflictingEvidence = await capture(runId, '{"observation":"conflict"}');
+    const conflictingEvidence = await capture(
+      runId,
+      '{"observation":"conflict"}',
+    );
     await expect(
       store.saveTransactionsPage(conflictingEvidence, [transaction("126.00")], {
         latestId: "9007199254740994",
         backfillCursor: "9007199254740994",
-        backfillComplete: false
-      })
+        backfillComplete: false,
+      }),
     ).rejects.toThrow("Conflicting source data detected");
 
     const transactions = await pool.query(
-      "SELECT transaction_id::text, unit_price::text FROM wallet_transactions"
+      "SELECT transaction_id::text, unit_price::text FROM wallet_transactions",
     );
     const rawEvidence = await pool.query(
       "SELECT count(*)::integer AS count FROM source_responses WHERE sync_run_id = $1",
-      [runId]
+      [runId],
     );
     const savedCheckpoint = await store.getTransactionCheckpoint(corporationId);
 
     expect(transactions.rows).toEqual([
-      { transaction_id: "9007199254740993", unit_price: "125.500000000000" }
+      { transaction_id: "9007199254740993", unit_price: "125.500000000000" },
     ]);
     expect(rawEvidence.rows[0]?.count).toBe(3);
     expect(savedCheckpoint).toEqual(checkpoint);
@@ -113,7 +133,10 @@ databaseSuite("PostgresWalletStore integration", () => {
     const evidenceId = await capture(runId, '{"immutable":true}');
 
     await expect(
-      pool.query("UPDATE source_responses SET response_body = '{}' WHERE id = $1", [evidenceId])
+      pool.query(
+        "UPDATE source_responses SET response_body = '{}' WHERE id = $1",
+        [evidenceId],
+      ),
     ).rejects.toThrow("source_responses is append-only");
   });
 });

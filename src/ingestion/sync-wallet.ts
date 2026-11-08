@@ -2,17 +2,21 @@ import type {
   EsiResponse,
   WalletBalance,
   WalletJournalEntry,
-  WalletTransaction
+  WalletTransaction,
 } from "../esi/contracts.js";
 import {
   parseWalletBalance,
   parseWalletJournalEntry,
-  parseWalletTransaction
+  parseWalletTransaction,
 } from "../esi/contracts.js";
 import type { EsiClient } from "../esi/client.js";
-import type { TransactionCheckpoint, WalletStore } from "../persistence/types.js";
+import type {
+  TransactionCheckpoint,
+  WalletStore,
+} from "../persistence/types.js";
 
-const TRANSACTIONS_ENDPOINT = "/v1/corporations/{corporation_id}/wallets/1/transactions/";
+const TRANSACTIONS_ENDPOINT =
+  "/v1/corporations/{corporation_id}/wallets/1/transactions/";
 const JOURNAL_ENDPOINT = "/v4/corporations/{corporation_id}/wallets/1/journal/";
 const BALANCE_ENDPOINT = "/v1/corporations/{corporation_id}/wallets/";
 
@@ -28,7 +32,7 @@ function evidenceInput<T>(
   requestParams: Record<string, string>,
   pageNumber: number | null,
   cursorValue: string | null,
-  recordCount: number
+  recordCount: number,
 ) {
   return {
     syncRunId,
@@ -38,7 +42,7 @@ function evidenceInput<T>(
     pageNumber,
     cursorValue,
     response,
-    recordCount
+    recordCount,
   };
 }
 
@@ -46,7 +50,7 @@ async function syncTransactions(
   esi: EsiClient,
   store: WalletStore,
   corporationId: string,
-  syncRunId: string
+  syncRunId: string,
 ): Promise<number> {
   const initial = await store.getTransactionCheckpoint(corporationId);
   let checkpoint: TransactionCheckpoint = { ...initial };
@@ -67,38 +71,48 @@ async function syncTransactions(
         cursor === undefined ? {} : { from_id: cursor },
         null,
         cursor ?? null,
-        response.data.length
+        response.data.length,
       );
       const evidenceId = await store.captureResponse(input);
       const parsed = response.data.map(parseWalletTransaction);
       if (cursor !== undefined && parsed[0]?.transactionId !== cursor) {
-        throw new Error("Transaction incremental pagination did not repeat its cursor");
+        throw new Error(
+          "Transaction incremental pagination did not repeat its cursor",
+        );
       }
 
       const crossedHighWater = parsed.some(
-        (record) => BigInt(record.transactionId) <= BigInt(previousHighWater)
+        (record) => BigInt(record.transactionId) <= BigInt(previousHighWater),
       );
       const nextLatest = parsed.reduce(
         (value, record) => newerId(value, record.transactionId),
-        checkpoint.latestId
+        checkpoint.latestId,
       );
 
       await store.saveTransactionsPage(evidenceId, parsed, {
         ...checkpoint,
-        latestId: nextLatest
+        latestId: nextLatest,
       });
       checkpoint = { ...checkpoint, latestId: nextLatest };
       stored += parsed.length - (cursor === undefined ? 0 : 1);
 
-      if (parsed.length === 0 || crossedHighWater || (cursor !== undefined && parsed.length === 1)) {
+      if (
+        parsed.length === 0 ||
+        crossedHighWater ||
+        (cursor !== undefined && parsed.length === 1)
+      ) {
         break;
       }
       const nextCursor = parsed[parsed.length - 1]?.transactionId;
-      if (!nextCursor || (cursor !== undefined && BigInt(nextCursor) >= BigInt(cursor))) {
+      if (
+        !nextCursor ||
+        (cursor !== undefined && BigInt(nextCursor) >= BigInt(cursor))
+      ) {
         throw new Error("Transaction incremental cursor failed to progress");
       }
       cursor = nextCursor;
-      if (index === maxPages - 1) throw new Error("Transaction incremental page safety limit reached");
+      if (index === maxPages - 1)
+        throw new Error("Transaction incremental page safety limit reached");
     }
   }
 
@@ -106,7 +120,10 @@ async function syncTransactions(
   if (!checkpoint.backfillComplete) {
     let cursor = checkpoint.backfillCursor;
     for (let index = 0; index < maxPages; index += 1) {
-      const response = await esi.getTransactions(corporationId, cursor ?? undefined);
+      const response = await esi.getTransactions(
+        corporationId,
+        cursor ?? undefined,
+      );
       const input = evidenceInput(
         syncRunId,
         "transactions",
@@ -115,32 +132,43 @@ async function syncTransactions(
         cursor === null ? {} : { from_id: cursor },
         null,
         cursor,
-        response.data.length
+        response.data.length,
       );
       const evidenceId = await store.captureResponse(input);
       const parsed = response.data.map(parseWalletTransaction);
 
       if (cursor !== null && parsed[0]?.transactionId !== cursor) {
-        throw new Error("Transaction backfill did not repeat its stored cursor");
+        throw new Error(
+          "Transaction backfill did not repeat its stored cursor",
+        );
       }
 
-      const exhausted = parsed.length === 0 || (cursor !== null && parsed.length === 1);
-      const nextCursor = exhausted ? cursor : parsed[parsed.length - 1]?.transactionId ?? null;
+      const exhausted =
+        parsed.length === 0 || (cursor !== null && parsed.length === 1);
+      const nextCursor = exhausted
+        ? cursor
+        : (parsed[parsed.length - 1]?.transactionId ?? null);
       if (!exhausted && nextCursor === null) {
-        throw new Error("Transaction backfill returned records without a cursor");
+        throw new Error(
+          "Transaction backfill returned records without a cursor",
+        );
       }
-      if (!exhausted && cursor !== null && BigInt(nextCursor as string) >= BigInt(cursor)) {
+      if (
+        !exhausted &&
+        cursor !== null &&
+        BigInt(nextCursor as string) >= BigInt(cursor)
+      ) {
         throw new Error("Transaction backfill cursor failed to progress");
       }
 
       const nextLatest = parsed.reduce(
         (value, record) => newerId(value, record.transactionId),
-        checkpoint.latestId
+        checkpoint.latestId,
       );
       const nextCheckpoint: TransactionCheckpoint = {
         latestId: nextLatest,
         backfillCursor: nextCursor,
-        backfillComplete: exhausted
+        backfillComplete: exhausted,
       };
 
       await store.saveTransactionsPage(evidenceId, parsed, nextCheckpoint);
@@ -149,7 +177,8 @@ async function syncTransactions(
 
       if (exhausted) break;
       cursor = nextCursor;
-      if (index === maxPages - 1) throw new Error("Transaction backfill page safety limit reached");
+      if (index === maxPages - 1)
+        throw new Error("Transaction backfill page safety limit reached");
     }
   }
 
@@ -160,7 +189,7 @@ async function syncJournal(
   esi: EsiClient,
   store: WalletStore,
   corporationId: string,
-  syncRunId: string
+  syncRunId: string,
 ): Promise<number> {
   const first = await esi.getJournal(corporationId, 1);
   const firstEvidence = await store.captureResponse(
@@ -172,8 +201,8 @@ async function syncJournal(
       { page: "1" },
       1,
       null,
-      first.data.length
-    )
+      first.data.length,
+    ),
   );
   const pageCount = first.headers.xPages;
   if (pageCount === null || pageCount < 1 || pageCount > 10_000) {
@@ -182,7 +211,8 @@ async function syncJournal(
 
   let stored = 0;
   for (let page = 1; page <= pageCount; page += 1) {
-    const response = page === 1 ? first : await esi.getJournal(corporationId, page);
+    const response =
+      page === 1 ? first : await esi.getJournal(corporationId, page);
     const evidenceId =
       page === 1
         ? firstEvidence
@@ -195,14 +225,18 @@ async function syncJournal(
               { page: String(page) },
               page,
               null,
-              response.data.length
-            )
+              response.data.length,
+            ),
           );
 
     if (response.headers.xPages !== pageCount) {
-      throw new Error("Journal X-Pages changed during sync; journal run is incomplete");
+      throw new Error(
+        "Journal X-Pages changed during sync; journal run is incomplete",
+      );
     }
-    const records: WalletJournalEntry[] = response.data.map(parseWalletJournalEntry);
+    const records: WalletJournalEntry[] = response.data.map(
+      parseWalletJournalEntry,
+    );
     await store.saveJournalPage(evidenceId, records);
     stored += records.length;
   }
@@ -213,7 +247,7 @@ async function syncBalance(
   esi: EsiClient,
   store: WalletStore,
   corporationId: string,
-  syncRunId: string
+  syncRunId: string,
 ): Promise<number> {
   const response = await esi.getWallets(corporationId);
   const evidenceId = await store.captureResponse(
@@ -225,21 +259,28 @@ async function syncBalance(
       {},
       null,
       null,
-      response.data.length
-    )
+      response.data.length,
+    ),
   );
   const balances: WalletBalance[] = response.data.map(parseWalletBalance);
   const masterWallet = balances.find((balance) => balance.division === 1);
-  if (!masterWallet) throw new Error("ESI response did not contain corporation wallet division 1");
+  if (!masterWallet)
+    throw new Error(
+      "ESI response did not contain corporation wallet division 1",
+    );
 
-  await store.saveBalanceSnapshot(evidenceId, masterWallet, response.retrievedAt);
+  await store.saveBalanceSnapshot(
+    evidenceId,
+    masterWallet,
+    response.retrievedAt,
+  );
   return 1;
 }
 
 export async function syncWalletDivision1(
   esi: EsiClient,
   store: WalletStore,
-  corporationId: string
+  corporationId: string,
 ): Promise<{ syncRunId: string; recordCount: number }> {
   const syncRunId = await store.startSyncRun(corporationId);
   let recordCount = 0;
@@ -248,19 +289,28 @@ export async function syncWalletDivision1(
   for (const operation of [
     () => syncTransactions(esi, store, corporationId, syncRunId),
     () => syncJournal(esi, store, corporationId, syncRunId),
-    () => syncBalance(esi, store, corporationId, syncRunId)
+    () => syncBalance(esi, store, corporationId, syncRunId),
   ]) {
     try {
       recordCount += await operation();
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : "Unknown ingestion failure");
+      errors.push(
+        error instanceof Error ? error.message : "Unknown ingestion failure",
+      );
     }
   }
 
   const status = errors.length === 0 ? "completed" : "partial";
-  await store.finishSyncRun(syncRunId, status, recordCount, errors.join(" | ") || undefined);
+  await store.finishSyncRun(
+    syncRunId,
+    status,
+    recordCount,
+    errors.join(" | ") || undefined,
+  );
   if (errors.length > 0) {
-    throw new Error(`Wallet sync ${syncRunId} was partial: ${errors.join(" | ")}`);
+    throw new Error(
+      `Wallet sync ${syncRunId} was partial: ${errors.join(" | ")}`,
+    );
   }
 
   return { syncRunId, recordCount };

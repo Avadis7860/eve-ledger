@@ -1,6 +1,8 @@
 import type { WalletTransaction } from "../esi/contracts.js";
 
-export type TransactionPageFetcher = (fromId?: string) => Promise<WalletTransaction[]>;
+export type TransactionPageFetcher = (
+  fromId?: string,
+) => Promise<WalletTransaction[]>;
 
 export type TransactionPageBatch = {
   pages: WalletTransaction[][];
@@ -22,7 +24,7 @@ function compareIds(left: string, right: string): number {
 export async function collectTransactionHistory(
   fetchPage: TransactionPageFetcher,
   initialCursor: string | null = null,
-  maxPages = 10_000
+  maxPages = 10_000,
 ): Promise<TransactionPageBatch> {
   const pages: WalletTransaction[][] = [];
   const uniqueRecords = new Map<string, WalletTransaction>();
@@ -33,16 +35,26 @@ export async function collectTransactionHistory(
     pages.push(page);
 
     if (page.length === 0) {
-      return { pages, uniqueRecords: [...uniqueRecords.values()], finalCursor: cursor };
+      return {
+        pages,
+        uniqueRecords: [...uniqueRecords.values()],
+        finalCursor: cursor,
+      };
     }
 
     let records = page;
     if (cursor !== null) {
       if (page[0]?.transactionId !== cursor) {
-        throw new Error(`Transaction cursor ${cursor} was not repeated at the start of the next page`);
+        throw new Error(
+          `Transaction cursor ${cursor} was not repeated at the start of the next page`,
+        );
       }
       if (page.length === 1) {
-        return { pages, uniqueRecords: [...uniqueRecords.values()], finalCursor: cursor };
+        return {
+          pages,
+          uniqueRecords: [...uniqueRecords.values()],
+          finalCursor: cursor,
+        };
       }
       records = page.slice(1);
     }
@@ -54,26 +66,42 @@ export async function collectTransactionHistory(
 
     const nextCursor = page[page.length - 1]?.transactionId;
     if (!nextCursor) {
-      return { pages, uniqueRecords: [...uniqueRecords.values()], finalCursor: cursor };
+      return {
+        pages,
+        uniqueRecords: [...uniqueRecords.values()],
+        finalCursor: cursor,
+      };
     }
     if (cursor !== null && compareIds(nextCursor, cursor) >= 0) {
-      throw new Error("Transaction pagination cursor did not move toward older records");
+      throw new Error(
+        "Transaction pagination cursor did not move toward older records",
+      );
     }
     if (page.length === 1 && cursor === null) {
-      return { pages, uniqueRecords: [...uniqueRecords.values()], finalCursor: nextCursor };
+      return {
+        pages,
+        uniqueRecords: [...uniqueRecords.values()],
+        finalCursor: nextCursor,
+      };
     }
     cursor = nextCursor;
   }
 
-  throw new Error(`Transaction pagination exceeded the safety limit of ${maxPages} pages`);
+  throw new Error(
+    `Transaction pagination exceeded the safety limit of ${maxPages} pages`,
+  );
 }
 
 export async function collectJournalPages<T>(
   fetchPage: (page: number) => Promise<{ records: T[]; pageCount: number }>,
-  maxPages = 10_000
+  maxPages = 10_000,
 ): Promise<T[][]> {
   const first = await fetchPage(1);
-  if (!Number.isInteger(first.pageCount) || first.pageCount < 1 || first.pageCount > maxPages) {
+  if (
+    !Number.isInteger(first.pageCount) ||
+    first.pageCount < 1 ||
+    first.pageCount > maxPages
+  ) {
     throw new Error("Journal pagination returned an invalid page count");
   }
 
@@ -81,7 +109,9 @@ export async function collectJournalPages<T>(
   for (let page = 2; page <= first.pageCount; page += 1) {
     const result = await fetchPage(page);
     if (result.pageCount !== first.pageCount) {
-      throw new Error("Journal X-Pages changed during pagination; run is incomplete");
+      throw new Error(
+        "Journal X-Pages changed during pagination; run is incomplete",
+      );
     }
     pages.push(result.records);
   }

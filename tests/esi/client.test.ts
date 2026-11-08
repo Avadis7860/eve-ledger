@@ -11,13 +11,13 @@ const config: AppConfig = {
   initialRefreshToken: "refresh-token",
   tokenEncryptionKey: Buffer.alloc(32),
   compatibilityDate: "2026-11-09",
-  userAgent: "EVE-Ledger-test"
+  userAgent: "EVE-Ledger-test",
 };
 
 function tokenProvider() {
   return {
     getAccessToken: vi.fn().mockResolvedValue("access-token"),
-    invalidate: vi.fn()
+    invalidate: vi.fn(),
   } as unknown as EsiTokenProvider & {
     getAccessToken: ReturnType<typeof vi.fn>;
     invalidate: ReturnType<typeof vi.fn>;
@@ -34,15 +34,18 @@ describe("EsiClient", () => {
       requestHeaders = new Headers(init?.headers);
       return new Response('[{"transaction_id":9007199254740993}]', {
         status: 200,
-        headers: { "X-Pages": "1", ETag: '"page-one"' }
+        headers: { "X-Pages": "1", ETag: '"page-one"' },
       });
     };
     const client = new EsiClient(config, tokens, request);
 
-    const response = await client.getTransactions("98000001", "9007199254740994");
+    const response = await client.getTransactions(
+      "98000001",
+      "9007199254740994",
+    );
 
     expect(requestUrl?.pathname).toBe(
-      "/v1/corporations/98000001/wallets/1/transactions/"
+      "/v1/corporations/98000001/wallets/1/transactions/",
     );
     expect(requestUrl?.searchParams.get("from_id")).toBe("9007199254740994");
     expect(requestUrl?.searchParams.get("datasource")).toBe("tranquility");
@@ -79,9 +82,14 @@ describe("EsiClient", () => {
         ? new Response("temporarily unavailable", { status: 503 })
         : new Response("[]", { status: 200 });
     };
-    const client = new EsiClient(config, tokens, request, async (milliseconds) => {
-      waits.push(milliseconds);
-    });
+    const client = new EsiClient(
+      config,
+      tokens,
+      request,
+      async (milliseconds) => {
+        waits.push(milliseconds);
+      },
+    );
 
     await client.getJournal("98000001", 1);
 
@@ -90,10 +98,18 @@ describe("EsiClient", () => {
   });
 
   it("rejects malformed X-Pages metadata", async () => {
-    const client = new EsiClient(config, tokenProvider(), async () =>
-      new Response("[]", { status: 200, headers: { "X-Pages": "not-a-number" } })
+    const client = new EsiClient(
+      config,
+      tokenProvider(),
+      async () =>
+        new Response("[]", {
+          status: 200,
+          headers: { "X-Pages": "not-a-number" },
+        }),
     );
 
-    await expect(client.getJournal("98000001", 1)).rejects.toThrow("invalid X-Pages");
+    await expect(client.getJournal("98000001", 1)).rejects.toThrow(
+      "invalid X-Pages",
+    );
   });
 });

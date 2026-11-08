@@ -6,6 +6,6 @@ export function createPool(connectionString: string): Pool {
     max: 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
-    application_name: "eve-ledger"
+    application_name: "eve-ledger",
   });
 }

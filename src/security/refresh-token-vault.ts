@@ -6,7 +6,7 @@ const TOKEN_NAME = "esi_refresh_token";
 export class RefreshTokenVault {
   constructor(
     private readonly pool: Pool,
-    private readonly encryptionKey: Buffer
+    private readonly encryptionKey: Buffer,
   ) {
     if (encryptionKey.length !== 32) {
       throw new Error("Refresh-token vault requires a 32-byte encryption key");
@@ -20,20 +20,30 @@ export class RefreshTokenVault {
       auth_tag: Buffer;
     }>(
       "SELECT ciphertext, nonce, auth_tag FROM secure_tokens WHERE token_name = $1",
-      [TOKEN_NAME]
+      [TOKEN_NAME],
     );
     const row = result.rows[0];
     if (!row) return null;
 
-    const decipher = createDecipheriv("aes-256-gcm", this.encryptionKey, row.nonce);
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      this.encryptionKey,
+      row.nonce,
+    );
     decipher.setAuthTag(row.auth_tag);
-    return Buffer.concat([decipher.update(row.ciphertext), decipher.final()]).toString("utf8");
+    return Buffer.concat([
+      decipher.update(row.ciphertext),
+      decipher.final(),
+    ]).toString("utf8");
   }
 
   async write(token: string): Promise<void> {
     const nonce = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", this.encryptionKey, nonce);
-    const ciphertext = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+    const ciphertext = Buffer.concat([
+      cipher.update(token, "utf8"),
+      cipher.final(),
+    ]);
     const authTag = cipher.getAuthTag();
 
     await this.pool.query(
@@ -44,7 +54,7 @@ export class RefreshTokenVault {
          nonce = EXCLUDED.nonce,
          auth_tag = EXCLUDED.auth_tag,
          updated_at = now()`,
-      [TOKEN_NAME, ciphertext, nonce, authTag]
+      [TOKEN_NAME, ciphertext, nonce, authTag],
     );
   }
 }

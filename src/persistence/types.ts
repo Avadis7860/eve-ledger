@@ -2,7 +2,7 @@ import type {
   EsiResponse,
   WalletBalance,
   WalletJournalEntry,
-  WalletTransaction
+  WalletTransaction,
 } from "../esi/contracts.js";
 
 export type EvidenceSource = "transactions" | "journal" | "balance";
@@ -30,19 +30,24 @@ export interface WalletStore {
     syncRunId: string,
     status: "completed" | "partial" | "failed",
     recordCount: number,
-    errorSummary?: string
+    errorSummary?: string,
   ): Promise<void>;
-  getTransactionCheckpoint(corporationId: string): Promise<TransactionCheckpoint>;
+  getTransactionCheckpoint(
+    corporationId: string,
+  ): Promise<TransactionCheckpoint>;
   captureResponse<T>(input: EvidenceInput<T>): Promise<string>;
   saveTransactionsPage(
     evidenceId: string,
     records: WalletTransaction[],
-    checkpoint: TransactionCheckpoint
+    checkpoint: TransactionCheckpoint,
   ): Promise<void>;
-  saveJournalPage(evidenceId: string, records: WalletJournalEntry[]): Promise<void>;
+  saveJournalPage(
+    evidenceId: string,
+    records: WalletJournalEntry[],
+  ): Promise<void>;
   saveBalanceSnapshot(
     evidenceId: string,
     balance: WalletBalance,
-    retrievedAt: Date
+    retrievedAt: Date,
   ): Promise<void>;
 }

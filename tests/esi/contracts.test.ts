@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   parseWalletJournalEntry,
-  parseWalletTransaction
+  parseWalletTransaction,
 } from "../../src/esi/contracts.js";
 import { parseEsiJson } from "../../src/esi/json.js";
 
 describe("lossless ESI JSON parsing", () => {
   it("preserves large IDs and decimal money lexemes exactly", () => {
     const parsed = parseEsiJson<{ transaction_id: string; unit_price: string }>(
-      '{"transaction_id":9007199254740993,"unit_price":1234567890123.123456789}'
+      '{"transaction_id":9007199254740993,"unit_price":1234567890123.123456789}',
     );
 
     expect(parsed.transaction_id).toBe("9007199254740993");
@@ -27,7 +27,7 @@ describe("wallet source contracts", () => {
       location_id: "60003760",
       quantity: "2",
       type_id: "34",
-      unit_price: "1234567890123.123456789"
+      unit_price: "1234567890123.123456789",
     });
 
     expect(result.transactionId).toBe("9007199254740993");
@@ -47,7 +47,7 @@ describe("wallet source contracts", () => {
       reason: null,
       context_id: null,
       context_id_type: null,
-      description: "Market transaction"
+      description: "Market transaction",
     });
 
     expect(result.firstPartyId).toBeNull();

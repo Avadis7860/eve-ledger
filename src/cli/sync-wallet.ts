@@ -17,11 +17,11 @@ try {
   const store = new PostgresWalletStore(pool, config.corporationId, 1);
   const result = await syncWalletDivision1(esi, store, config.corporationId);
   process.stdout.write(
-    `Wallet division 1 sync completed: ${result.syncRunId} — ${result.recordCount} source records\\n`
+    `Wallet division 1 sync completed: ${result.syncRunId} — ${result.recordCount} source records\\n`,
   );
 } catch (error) {
   process.stderr.write(
-    `Wallet division 1 sync failed: ${error instanceof Error ? error.message : "Unknown error"}\\n`
+    `Wallet division 1 sync failed: ${error instanceof Error ? error.message : "Unknown error"}\\n`,
   );
   process.exitCode = 1;
 } finally {

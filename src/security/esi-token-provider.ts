@@ -16,7 +16,7 @@ export class EsiTokenProvider {
     private readonly config: AppConfig,
     private readonly vault: RefreshTokenVault,
     private readonly request: typeof fetch = fetch,
-    private readonly now: () => number = Date.now
+    private readonly now: () => number = Date.now,
   ) {}
 
   async getAccessToken(): Promise<string> {
@@ -24,27 +24,33 @@ export class EsiTokenProvider {
       return this.cachedAccessToken;
     }
 
-    const refreshToken = (await this.vault.read()) ?? this.config.initialRefreshToken;
+    const refreshToken =
+      (await this.vault.read()) ?? this.config.initialRefreshToken;
     const body = new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      scope: "esi-wallet.read_corporation_wallets.v1"
+      scope: "esi-wallet.read_corporation_wallets.v1",
     });
 
-    const response = await this.request("https://login.eveonline.com/v2/oauth/token", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${this.config.clientId}:${this.config.clientSecret}`
-        ).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json"
+    const response = await this.request(
+      "https://login.eveonline.com/v2/oauth/token",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${this.config.clientId}:${this.config.clientSecret}`,
+          ).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body,
       },
-      body
-    });
+    );
 
     if (!response.ok) {
-      throw new Error(`EVE SSO token refresh failed with HTTP ${response.status}`);
+      throw new Error(
+        `EVE SSO token refresh failed with HTTP ${response.status}`,
+      );
     }
 
     const payload = (await response.json()) as TokenResponse;

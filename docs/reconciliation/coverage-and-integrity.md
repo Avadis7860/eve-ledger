@@ -25,6 +25,7 @@ Raw response capture is committed before parsing and normalization. A page that 
 Use the transaction's journal reference only when it is present and valid. A missing/sentinel reference is not a failed match. Do not force one-to-one cardinality unless the API contract and observed data prove it.
 
 Report separately:
+
 - transactions with a usable journal reference;
 - references matched to a journal entry;
 - references not found within currently available journal coverage;

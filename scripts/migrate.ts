@@ -8,7 +8,10 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required to run migrations");
 
 const pool = new Pool({ connectionString: databaseUrl, max: 1 });
-const migrationsDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../migrations");
+const migrationsDirectory = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../migrations",
+);
 
 try {
   await pool.query(`
@@ -29,7 +32,7 @@ try {
       await client.query("SELECT pg_advisory_xact_lock(74192026)");
       const alreadyApplied = await client.query(
         "SELECT 1 FROM schema_migrations WHERE migration_name = $1",
-        [file]
+        [file],
       );
       if (alreadyApplied.rowCount) {
         await client.query("COMMIT");
@@ -38,7 +41,10 @@ try {
 
       const sql = await readFile(path.join(migrationsDirectory, file), "utf8");
       await client.query(sql);
-      await client.query("INSERT INTO schema_migrations (migration_name) VALUES ($1)", [file]);
+      await client.query(
+        "INSERT INTO schema_migrations (migration_name) VALUES ($1)",
+        [file],
+      );
       await client.query("COMMIT");
       process.stdout.write(`applied ${file}\\n`);
     } catch (error) {
