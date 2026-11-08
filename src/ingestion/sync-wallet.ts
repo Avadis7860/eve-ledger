@@ -302,7 +302,11 @@ export async function syncWalletDivision1(
   }
 
   const status =
-    errors.length === 0 ? "completed" : completedSources === 0 ? "failed" : "partial";
+    errors.length === 0
+      ? "completed"
+      : completedSources === 0
+        ? "failed"
+        : "partial";
   await store.finishSyncRun(
     syncRunId,
     status,
