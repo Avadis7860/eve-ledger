@@ -2,7 +2,7 @@
 
 ## M0 — Repository and engineering foundation
 
-**Implementation status: implemented and CI-verified.**
+**Implementation status:** implemented and CI-verified.
 
 Implemented:
 
@@ -10,39 +10,34 @@ Implemented:
 - Local environment validation and secret-handling baseline.
 - Versioned PostgreSQL migration and schema migration runner.
 - Encrypted storage for rotated ESI refresh tokens.
-- Committed dependency lockfile and deterministic `npm ci` installation.
 
-Verified:
+Completion gate:
 
-- GitHub Actions CI is green on the current PR head.
-- PostgreSQL 16 migrations apply successfully twice.
-- Prettier, ESLint, and strict TypeScript checks pass.
-- Integration tests execute against the PostgreSQL service in CI.
+- GitHub Actions quality workflow is green on the current PR head.
+- PostgreSQL 16 migrations and persistence integration tests pass in CI; migrations are applied twice to verify idempotency.
+- A clean install is reproducible from the committed dependency lockfile with `npm ci`.
 
 ## M1 — ESI wallet evidence ingestion
 
-**Implementation status: code and automated tests implemented; live corporation validation remains open.**
+**Implementation status:** first vertical slice implemented; live ESI authorization and source behavior are not yet validated.
 
 Implemented:
+
 - EVE SSO refresh-token provider with least-scope wallet authorization, access-token caching, and refresh-token rotation support.
 - Authenticated versioned ESI client with compatibility-date pinning, bounded transient retries, and ESI error-budget handling.
 - Division 1 transactions, journal pages, and balance endpoint adapters.
 - Lossless numeric JSON parsing and exact decimal storage.
 - Immutable raw response evidence, SHA-256 hashes, normalized records, idempotency/conflict detection, and transaction checkpoints.
 - Incremental high-water-mark catch-up plus resumable historical transaction cursor.
-- Tests for pagination, token refresh, numeric precision, partial-run behavior, PostgreSQL persistence idempotency, and evidence immutability.
+- Unit and PostgreSQL integration tests cover pagination, token refresh, numeric precision, partial-run behavior, idempotency, conflict handling, checkpoint safety, and raw evidence immutability.
 
-Verified:
-- Current CI passes formatting, lint, strict type checking, and all 22 tests across 6 test files.
-- PostgreSQL 16 schema migration and repeat migration are successful.
-- PostgreSQL integration tests verify idempotency, conflict rollback/checkpoint safety, raw evidence retention, and append-only behavior.
+Completion gate:
 
-Remaining completion gate:
-
-- Implement local EVE SSO authorization-code/browser callback bootstrap.
-- Validate the corporation ID, ESI application, granted scope, and required corporation role using a real authorized ESI read.
-- Compare live response fields, caching, page boundaries, role access, and journal semantics with the source contracts.
-- Execute an initial sync and a repeated sync; inspect source freshness, coverage, and duplicate behavior.
+- Automated quality gates are green: Prettier, ESLint, strict TypeScript, and all 22 tests across 6 files.
+- PostgreSQL 16 migrations and store behavior are verified in CI.
+- Valid corporation ID, scope, and required corporation role confirmed through a real ESI read.
+- Observed page boundaries, cache behavior, role access, and journal field semantics compared with live ESI responses.
+- An initial sync and a repeated sync produce explainable coverage and no duplicate normalized events.
 
 ## M2 — Financial event normalization and controls
 
