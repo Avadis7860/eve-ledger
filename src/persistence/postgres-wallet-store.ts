@@ -215,8 +215,8 @@ export class PostgresWalletStore implements WalletStore {
       `INSERT INTO source_responses (
          sync_run_id, source, endpoint, request_params, page_number, cursor_value,
          http_status, retrieved_at, etag, last_modified, expires_at, x_pages,
-         response_sha256, response_body, record_count
-       ) VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         error_limit_remain, error_limit_reset, response_sha256, response_body, record_count
+       ) VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING id`,
       [
         input.syncRunId,
@@ -231,6 +231,8 @@ export class PostgresWalletStore implements WalletStore {
         input.response.headers.lastModified,
         expiresAt,
         input.response.headers.xPages,
+        input.response.headers.errorLimitRemain,
+        input.response.headers.errorLimitReset,
         sha256(input.response.rawBody),
         input.response.rawBody,
         input.recordCount,
