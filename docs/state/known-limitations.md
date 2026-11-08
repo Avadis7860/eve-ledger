@@ -9,12 +9,20 @@
 - No cost-basis or profit methodology is approved for implementation yet.
 - The transaction endpoint and journal endpoint have different pagination models and coverage characteristics.
 
+## Verified implementation state
+
+- GitHub Actions CI is green on the current implementation PR head.
+- PostgreSQL 16 migrations have been run twice successfully in CI.
+- Formatting, ESLint, strict TypeScript checks, and all 22 unit/integration tests pass.
+- PostgreSQL integration tests validate idempotent persistence, conflict handling, checkpoint rollback, and raw evidence immutability.
+- Dependency installation is reproducible through the committed lockfile and `npm ci`.
+- CI uses read-only repository permissions; formatting is a local contributor responsibility.
+
 ## Current implementation gaps
 
 - The local EVE SSO authorization-code/browser callback bootstrap is not implemented. The sync command requires an already-authorized refresh token for the corporation wallet scope.
 - The implementation has not yet been exercised with the user's live corporation ID, ESI application, corporation role, or actual wallet responses.
-- PostgreSQL migrations and transactional persistence have not yet been run against a live local PostgreSQL instance.
-- GitHub Actions results have not yet been confirmed; the dependency lockfile still needs to be generated and committed to make installs fully reproducible.
+- Live ESI collection, role access, actual page behavior, server caching, and journal field semantics remain unvalidated.
 - Monitoring UI, scheduler, alerting, and a journal freshness dashboard are not implemented.
 
 ## Must be validated during implementation
