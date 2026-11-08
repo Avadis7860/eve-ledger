@@ -1,40 +1,48 @@
 # Backfill and synchronization strategy
 
-## Separate synchronization jobs
+## Transaction ingestion
 
-### Transactions
+Transaction history uses two independent controls:
 
-1. Initial run starts without `from_id`.
-2. Store each page before advancing the cursor.
-3. Use the final record's transaction ID as the next `from_id`.
-4. Expect the cursor record to be repeated; deduplicate it by stable transaction ID.
-5. Stop when the response contains only the cursor record.
-6. Record earliest/latest dates, counts, cursor chain, and any gaps or anomalies.
+- `latestId`: the highest observed transaction ID, used as the incremental high-water mark.
+- `backfillCursor` and `backfillComplete`: the oldest committed cursor and completion state for the historical scan.
 
-### Journal
+A sync first brings the latest window forward to the previous high-water mark. It then resumes the historical cursor if the backfill is incomplete. This prevents each scheduled run from rescanning the entire historical transaction history.
 
-1. Start immediately; the API only exposes a rolling 30-day history.
-2. Fetch all available pages.
-3. Persist page observations and journal records atomically.
-4. Run frequently enough to avoid losing entries as they age out of the API window.
-5. Track last successful poll and the oldest/newest journal timestamp observed.
+For every page:
 
-### Balance
+1. Fetch the ESI response.
+2. Persist its exact body and retrieval metadata as raw evidence before validating or normalizing records.
+3. Validate cursor repetition and monotonic progress.
+4. Upsert normalized transactions by stable `transaction_id`.
+5. Commit normalized rows and the updated checkpoint in one PostgreSQL transaction.
 
-Poll and store snapshots on a deliberate cadence. The balance is a control total at a point in time, not a replacement for journal history.
+The cursor row may be included again at a page boundary. Raw evidence keeps the duplicate observation; normalized storage deduplicates it. A source identifier whose normalized facts change is treated as a conflict and causes the source run to be partial rather than overwriting the previous record.
 
-## Checkpoints and retries
+The historical scan stops only when the API returns an empty page or only the repeated cursor. A safety limit prevents an endless pagination loop.
 
-- A sync run has explicit states: started, running, completed, partial, failed.
-- Checkpoints are committed only after successful durable persistence.
-- Retries are bounded and respect ESI rate-limit and error semantics.
-- A partial run remains partial; it must not be reported as complete.
-- Backfills and incremental syncs are independently observable.
+## Journal ingestion
 
-## Operational monitoring
+1. Fetch page 1 and preserve its raw response.
+2. Require a valid `X-Pages` header.
+3. Fetch and preserve every page from 1 through the announced count.
+4. Require the count to remain stable during the run.
+5. Normalize each journal event by its stable journal entry ID.
 
-Expose last success, last attempt, lag, page count, row count, cursor progress, oldest/newest timestamp, errors, and known coverage gaps per source and division.
+A missing or changing page count makes the run partial. Each page's raw evidence remains available for diagnosis even when normalization or later-page retrieval fails.
 
-## Important limitation
+## Balance observations
 
-A first-time journal backfill cannot recover journal entries older than the 30-day ESI window. The transaction endpoint is separately paginated and may provide older market transaction history, but that does not reconstruct the missing non-market journal events.
+Poll the corporation wallets endpoint and preserve the complete response. Normalize only the division 1 balance with its retrieval timestamp. A snapshot is not a historical ledger.
+
+## Partial-run semantics
+
+- Each source response is captured before normalization.
+- Normalized rows and transaction checkpoints commit atomically.
+- A request, validation, cursor, page-count, or record-conflict failure leaves the overall wallet sync marked `partial`.
+- A partial run is never labelled complete.
+- Sync runs record start/end state, number of source responses, normalized/source record count, and an error summary.
+
+## Operational cadence
+
+The journal is limited to a rolling 30-day window and must be polled frequently enough to avoid data loss. ESI's cache headers must be respected; do not assume repeated requests bypass the server-side cache. Transactions and balance snapshots have independent update characteristics and should be scheduled and monitored separately as the runtime evolves.
