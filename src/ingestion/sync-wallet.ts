@@ -283,6 +283,7 @@ export async function syncWalletDivision1(
 ): Promise<{ syncRunId: string; recordCount: number }> {
   const syncRunId = await store.startSyncRun(corporationId);
   let recordCount = 0;
+  let completedSources = 0;
   const errors: string[] = [];
 
   for (const operation of [
@@ -292,6 +293,7 @@ export async function syncWalletDivision1(
   ]) {
     try {
       recordCount += await operation();
+      completedSources += 1;
     } catch (error) {
       errors.push(
         error instanceof Error ? error.message : "Unknown ingestion failure",
@@ -299,7 +301,8 @@ export async function syncWalletDivision1(
     }
   }
 
-  const status = errors.length === 0 ? "completed" : "partial";
+  const status =
+    errors.length === 0 ? "completed" : completedSources === 0 ? "failed" : "partial";
   await store.finishSyncRun(
     syncRunId,
     status,
@@ -308,7 +311,7 @@ export async function syncWalletDivision1(
   );
   if (errors.length > 0) {
     throw new Error(
-      `Wallet sync ${syncRunId} was partial: ${errors.join(" | ")}`,
+      `Wallet sync ${syncRunId} was ${status}: ${errors.join(" | ")}`,
     );
   }
 
