@@ -79,13 +79,16 @@ export class PostgresWalletStore implements WalletStore {
     };
   }
 
+  async captureResponse<T>(input: EvidenceInput<T>): Promise<string> {
+    return this.insertEvidence(this.pool, input);
+  }
+
   async saveTransactionsPage(
-    input: EvidenceInput<unknown[]>,
+    evidenceId: string,
     records: WalletTransaction[],
     checkpoint: TransactionCheckpoint
   ): Promise<void> {
     await this.withTransaction(async (client) => {
-      const responseId = await this.insertEvidence(client, input);
       for (const record of records) {
         const recordHash = sha256(JSON.stringify(record));
         const result = await client.query(
@@ -111,7 +114,7 @@ export class PostgresWalletStore implements WalletStore {
             record.typeId,
             record.unitPrice,
             recordHash,
-            responseId
+            evidenceId
           ]
         );
         if (result.rowCount !== 1) {
@@ -125,12 +128,8 @@ export class PostgresWalletStore implements WalletStore {
     });
   }
 
-  async saveJournalPage(
-    input: EvidenceInput<unknown[]>,
-    records: WalletJournalEntry[]
-  ): Promise<void> {
+  async saveJournalPage(evidenceId: string, records: WalletJournalEntry[]): Promise<void> {
     await this.withTransaction(async (client) => {
-      const responseId = await this.insertEvidence(client, input);
       for (const record of records) {
         const recordHash = sha256(JSON.stringify(record));
         const result = await client.query(
@@ -158,7 +157,7 @@ export class PostgresWalletStore implements WalletStore {
             record.contextIdType,
             record.description,
             recordHash,
-            responseId
+            evidenceId
           ]
         );
         if (result.rowCount !== 1) {
@@ -169,33 +168,33 @@ export class PostgresWalletStore implements WalletStore {
   }
 
   async saveBalanceSnapshot(
-    input: EvidenceInput<unknown[]>,
-    balance: WalletBalance
+    evidenceId: string,
+    balance: WalletBalance,
+    retrievedAt: Date
   ): Promise<void> {
     if (balance.division !== this.division) {
       throw new Error("Refusing to persist a balance outside wallet division 1");
     }
     await this.withTransaction(async (client) => {
-      const responseId = await this.insertEvidence(client, input);
       await client.query(
         `INSERT INTO wallet_balance_snapshots (
            corporation_id, division, balance, retrieved_at, raw_response_id
          ) VALUES ($1,$2,$3,$4,$5)
          ON CONFLICT (raw_response_id, division) DO NOTHING`,
-        [this.corporationId, this.division, balance.balance, input.response.retrievedAt, responseId]
+        [this.corporationId, this.division, balance.balance, retrievedAt, evidenceId]
       );
     });
   }
 
   private async insertEvidence<T>(
-    client: PoolClient,
+    queryable: Pool | PoolClient,
     input: EvidenceInput<T>
   ): Promise<string> {
     const expiresAt =
       input.response.headers.expires === null
         ? null
         : dateValue(input.response.headers.expires);
-    const result = await client.query<{ id: string }>(
+    const result = await queryable.query<{ id: string }>(
       `INSERT INTO source_responses (
          sync_run_id, source, endpoint, request_params, page_number, cursor_value,
          http_status, retrieved_at, etag, last_modified, expires_at, x_pages,
