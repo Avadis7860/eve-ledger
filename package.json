@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "check:format": "prettier --check .",
     "format": "prettier --write .",
-    "lint": "eslint .",
+    "lint": "eslint src tests scripts --ext .ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
