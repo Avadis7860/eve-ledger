@@ -68,7 +68,7 @@ function numericString(value: unknown, field: string, integer = false): string {
     throw new Error(`ESI field ${field} must be numeric`);
   }
   const result = String(value);
-  const pattern = integer ? /^-?\\d+$/ : /^-?\\d+(?:\\.\\d+)?$/;
+  const pattern = integer ? /^-?\d+$/ : /^-?\d+(?:\.\d+)?$/;
   if (!pattern.test(result)) {
     throw new Error(`ESI field ${field} has an invalid numeric representation`);
   }
