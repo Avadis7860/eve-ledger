@@ -55,6 +55,7 @@ async function syncTransactions(
 
   // Bring the latest window forward to the previous high-water mark.
   if (checkpoint.latestId !== null) {
+    const previousHighWater = checkpoint.latestId;
     let cursor: string | undefined;
     for (let index = 0; index < maxPages; index += 1) {
       const response = await esi.getTransactions(corporationId, cursor);
@@ -66,7 +67,7 @@ async function syncTransactions(
       }
 
       const crossedHighWater = parsed.some(
-        (record) => BigInt(record.transactionId) <= BigInt(checkpoint.latestId as string)
+        (record) => BigInt(record.transactionId) <= BigInt(previousHighWater)
       );
       const nextLatest = parsed.reduce(
         (value, record) => newerId(value, record.transactionId),
