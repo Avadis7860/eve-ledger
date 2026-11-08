@@ -2,20 +2,38 @@
 
 ## M0 — Repository and engineering foundation
 
-- Document scope, assumptions, and source contracts.
-- Establish TypeScript project structure, formatting, linting, tests, CI, and configuration validation.
-- Add threat model and secret-handling rules.
+**Implementation status:** staged on `feat/m0-m1-esi-wallet-ingestion`; CI and PostgreSQL execution still need verification.
+
+Implemented:
+- TypeScript strict project structure, linting, formatting, unit-test runner, and GitHub Actions CI workflow.
+- Local environment validation and secret-handling baseline.
+- Versioned PostgreSQL migration and schema migration runner.
+- Encrypted storage for rotated ESI refresh tokens.
+
+Completion gate:
+- GitHub Actions quality workflow is green.
+- Database migration is exercised against a real PostgreSQL instance.
+- A clean local install is reproducible from a committed dependency lockfile.
 
 ## M1 — ESI wallet evidence ingestion
 
-- Authenticate to ESI using least-privilege scopes.
-- Collect corporation wallet division 1 transactions.
-- Collect journal pages continuously.
-- Capture balance snapshots.
-- Persist immutable source observations and idempotent normalized records.
-- Add resumable checkpoints and sync-run observability.
+**Implementation status:** first vertical slice implemented; live ESI authorization and source behavior are not yet validated.
 
-**Acceptance:** repeat runs create no duplicate financial events; pagination can be resumed; incomplete runs remain visibly incomplete; coverage and freshness are measurable; raw evidence can explain every normalized row.
+Implemented:
+- EVE SSO refresh-token provider with least-scope wallet authorization, access-token caching, and refresh-token rotation support.
+- Authenticated versioned ESI client with compatibility-date pinning, bounded transient retries, and ESI error-budget handling.
+- Division 1 transactions, journal pages, and balance endpoint adapters.
+- Lossless numeric JSON parsing and exact decimal storage.
+- Immutable raw response evidence, SHA-256 hashes, normalized records, idempotency/conflict detection, and transaction checkpoints.
+- Incremental high-water-mark catch-up plus resumable historical transaction cursor.
+- Tests for pagination, token refresh, numeric precision, and partial-run behavior.
+
+Completion gate:
+- CI green and unit coverage stable.
+- Migrations and store behavior verified against PostgreSQL.
+- Valid corporation ID, scope, and required corporation role confirmed through a real ESI read.
+- Observed page boundaries, cache behavior, role access, and journal field semantics compared with live ESI responses.
+- An initial sync and a repeated sync produce explainable coverage and no duplicate normalized events.
 
 ## M2 — Financial event normalization and controls
 
