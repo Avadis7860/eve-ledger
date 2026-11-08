@@ -77,7 +77,7 @@ Requirements: Node.js 22+, PostgreSQL, and an EVE SSO application configured for
 
 The migration command requires only `DATABASE_URL`. The sync command requires the ESI configuration and database schema. Each run creates a `sync_runs` record. Endpoint failures produce a `partial` run rather than a false success.
 
-During local development, run `npm run format` before committing. The pull-request workflow also applies the repository formatter and records a dedicated style commit when it finds formatting drift.
+During local development, run `npm run format` before committing. CI checks formatting but never modifies the branch or requires write permissions.
 
 ## ESI source contracts
 
