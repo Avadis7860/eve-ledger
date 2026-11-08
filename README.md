@@ -49,7 +49,7 @@ Requirements: Node.js 22+, PostgreSQL, and an EVE SSO application configured for
 1. Install dependencies:
 
    ```bash
-   npm install
+   npm ci
    ```
 
 2. Create local configuration:
