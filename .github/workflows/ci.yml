@@ -11,8 +11,26 @@ permissions:
 
 jobs:
   quality:
-    name: Format, lint, types and tests
+    name: Format, lint, types, tests and PostgreSQL
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: eve_ledger
+          POSTGRES_USER: eve_ledger
+          POSTGRES_PASSWORD: eve_ledger
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eve_ledger -d eve_ledger"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://eve_ledger:eve_ledger@localhost:5432/eve_ledger
+      TEST_DATABASE_URL: postgresql://eve_ledger:eve_ledger@localhost:5432/eve_ledger
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -22,5 +40,9 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Apply migrations twice (idempotency check)
+        run: |
+          npm run db:migrate
+          npm run db:migrate
       - name: Run quality gates
         run: npm run check
