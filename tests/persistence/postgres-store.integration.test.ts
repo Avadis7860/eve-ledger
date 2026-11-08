@@ -1,9 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { Pool } from "pg";
-import type {
-  EsiResponse,
-  WalletTransaction,
-} from "../../src/esi/contracts.js";
+import type { EsiResponse } from "../../src/esi/contracts.js";
 import { PostgresWalletStore } from "../../src/persistence/postgres-wallet-store.js";
 import type {
   EvidenceInput,
@@ -46,7 +43,7 @@ databaseSuite("PostgresWalletStore integration", () => {
     };
   }
 
-  function transaction(unitPrice = "125.50"): WalletTransaction {
+  function transaction(unitPrice = "125.50") {
     return {
       transactionId: "9007199254740993",
       journalRefId: "9007199254741001",
