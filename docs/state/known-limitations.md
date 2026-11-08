@@ -9,14 +9,23 @@
 - No cost-basis or profit methodology is approved for implementation yet.
 - The transaction endpoint and journal endpoint have different pagination models and coverage characteristics.
 
+## Current implementation gaps
+
+- The local EVE SSO authorization-code/browser callback bootstrap is not implemented. The sync command requires an already-authorized refresh token for the corporation wallet scope.
+- The implementation has not yet been exercised with the user's live corporation ID, ESI application, corporation role, or actual wallet responses.
+- PostgreSQL migrations and transactional persistence have not yet been run against a live local PostgreSQL instance.
+- GitHub Actions results have not yet been confirmed; the dependency lockfile still needs to be generated and committed to make installs fully reproducible.
+- Monitoring UI, scheduler, alerting, and a journal freshness dashboard are not implemented.
+
 ## Must be validated during implementation
 
 - Actual corporation role and ESI authorization availability.
-- Current ESI OpenAPI schema version and exact response fields.
-- Transaction endpoint historical retention and practical maximum backfill.
-- Journal page ordering and behavior at page boundaries.
+- Current ESI OpenAPI schema and route compatibility for the pinned date.
+- Transaction endpoint historical retention and observed page-boundary behavior.
+- Journal page ordering, `X-Pages` behavior, caching, and exact amount/balance semantics.
 - Balance endpoint response structure and division mapping.
 - Sign conventions and semantics for each journal ref type.
+- Whether source facts can legitimately change after first observation; the current conflict policy intentionally fails closed.
 - How internal transfers between the user's wallets/characters can be identified with sufficient confidence.
 
 ## Explicitly prohibited assumptions
