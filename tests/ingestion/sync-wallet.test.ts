@@ -158,17 +158,24 @@ describe("syncWalletDivision1", () => {
   });
   it("marks the run failed when every source operation fails", async () => {
     const { esi, store } = setup();
-    esi.getTransactions.mockReset().mockRejectedValue(new Error("transactions unavailable"));
-    esi.getJournal.mockReset().mockRejectedValue(new Error("journal unavailable"));
-    esi.getWallets.mockReset().mockRejectedValue(new Error("balance unavailable"));
+    esi.getTransactions
+      .mockReset()
+      .mockRejectedValue(new Error("transactions unavailable"));
+    esi.getJournal
+      .mockReset()
+      .mockRejectedValue(new Error("journal unavailable"));
+    esi.getWallets
+      .mockReset()
+      .mockRejectedValue(new Error("balance unavailable"));
 
-    await expect(syncWalletDivision1(esi, store, "98000001")).rejects.toThrow("was failed");
+    await expect(syncWalletDivision1(esi, store, "98000001")).rejects.toThrow(
+      "was failed",
+    );
     expect(store.finishSyncRun).toHaveBeenCalledWith(
       "run-1",
       "failed",
       0,
-      expect.stringContaining("transactions unavailable")
+      expect.stringContaining("transactions unavailable"),
     );
   });
-
 });
