@@ -116,7 +116,10 @@ databaseSuite("PostgresWalletStore integration", () => {
       "SELECT transaction_id::text, unit_price::text FROM wallet_transactions",
     );
     const rawEvidence = await pool.query(
-      "SELECT count(*)::integer AS count FROM source_responses WHERE sync_run_id = $1",
+      `SELECT count(*)::integer AS count,
+              min(error_limit_remain) AS error_limit_remain,
+              min(error_limit_reset) AS error_limit_reset
+       FROM source_responses WHERE sync_run_id = $1`,
       [runId],
     );
     const savedCheckpoint = await store.getTransactionCheckpoint(corporationId);
@@ -125,6 +128,8 @@ databaseSuite("PostgresWalletStore integration", () => {
       { transaction_id: "9007199254740993", unit_price: "125.500000000000" },
     ]);
     expect(rawEvidence.rows[0]?.count).toBe(3);
+    expect(rawEvidence.rows[0]?.error_limit_remain).toBe("100");
+    expect(rawEvidence.rows[0]?.error_limit_reset).toBe("0");
     expect(savedCheckpoint).toEqual(checkpoint);
   });
 
