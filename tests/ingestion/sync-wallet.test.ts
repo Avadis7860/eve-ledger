@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { EsiResponse } from "../../src/esi/contracts.js";
 import type { EsiClient } from "../../src/esi/client.js";
 import { syncWalletDivision1 } from "../../src/ingestion/sync-wallet.js";
-import type {
-  EvidenceInput,
-  TransactionCheckpoint,
-  WalletStore
-} from "../../src/persistence/types.js";
+import type { TransactionCheckpoint, WalletStore } from "../../src/persistence/types.js";
 
 function response<T>(data: T, xPages: number | null = null): EsiResponse<T> {
   return {
@@ -47,9 +43,10 @@ function setup() {
     startSyncRun: vi.fn().mockResolvedValue("run-1"),
     finishSyncRun: vi.fn().mockResolvedValue(undefined),
     getTransactionCheckpoint: vi.fn().mockImplementation(async () => transactionState.value),
+    captureResponse: vi.fn().mockResolvedValue("evidence-1"),
     saveTransactionsPage: vi.fn().mockImplementation(
       async (
-        _input: EvidenceInput<unknown[]>,
+        _evidenceId: string,
         _records: unknown[],
         checkpoint: TransactionCheckpoint
       ) => {
@@ -61,6 +58,7 @@ function setup() {
   } as unknown as WalletStore & {
     startSyncRun: ReturnType<typeof vi.fn>;
     finishSyncRun: ReturnType<typeof vi.fn>;
+    captureResponse: ReturnType<typeof vi.fn>;
     saveTransactionsPage: ReturnType<typeof vi.fn>;
     saveJournalPage: ReturnType<typeof vi.fn>;
     saveBalanceSnapshot: ReturnType<typeof vi.fn>;
