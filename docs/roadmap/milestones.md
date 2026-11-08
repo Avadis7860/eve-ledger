@@ -5,6 +5,7 @@
 **Implementation status: implemented and CI-verified.**
 
 Implemented:
+
 - TypeScript strict project structure, linting, formatting, unit-test runner, and GitHub Actions CI workflow.
 - Local environment validation and secret-handling baseline.
 - Versioned PostgreSQL migration and schema migration runner.
@@ -12,6 +13,7 @@ Implemented:
 - Committed dependency lockfile and deterministic `npm ci` installation.
 
 Verified:
+
 - GitHub Actions CI is green on the current PR head.
 - PostgreSQL 16 migrations apply successfully twice.
 - Prettier, ESLint, and strict TypeScript checks pass.
@@ -36,6 +38,7 @@ Verified:
 - PostgreSQL integration tests verify idempotency, conflict rollback/checkpoint safety, raw evidence retention, and append-only behavior.
 
 Remaining completion gate:
+
 - Implement local EVE SSO authorization-code/browser callback bootstrap.
 - Validate the corporation ID, ESI application, granted scope, and required corporation role using a real authorized ESI read.
 - Compare live response fields, caching, page boundaries, role access, and journal semantics with the source contracts.
