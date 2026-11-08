@@ -80,7 +80,7 @@ export class PostgresWalletStore implements WalletStore {
   }
 
   async captureResponse<T>(input: EvidenceInput<T>): Promise<string> {
-    return this.insertEvidence(this.pool, input);
+    return this.insertEvidence(input);
   }
 
   async saveTransactionsPage(
@@ -186,15 +186,12 @@ export class PostgresWalletStore implements WalletStore {
     });
   }
 
-  private async insertEvidence<T>(
-    queryable: Pool | PoolClient,
-    input: EvidenceInput<T>
-  ): Promise<string> {
+  private async insertEvidence<T>(input: EvidenceInput<T>): Promise<string> {
     const expiresAt =
       input.response.headers.expires === null
         ? null
         : dateValue(input.response.headers.expires);
-    const result = await queryable.query<{ id: string }>(
+    const result = await this.pool.query<{ id: string }>(
       `INSERT INTO source_responses (
          sync_run_id, source, endpoint, request_params, page_number, cursor_value,
          http_status, retrieved_at, etag, last_modified, expires_at, x_pages,
