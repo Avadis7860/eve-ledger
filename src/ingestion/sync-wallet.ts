@@ -59,11 +59,20 @@ async function syncTransactions(
     let cursor: string | undefined;
     for (let index = 0; index < maxPages; index += 1) {
       const response = await esi.getTransactions(corporationId, cursor);
+      const input = evidenceInput(
+        syncRunId,
+        "transactions",
+        TRANSACTIONS_ENDPOINT,
+        response,
+        cursor === undefined ? {} : { from_id: cursor },
+        null,
+        cursor ?? null,
+        response.data.length
+      );
+      const evidenceId = await store.captureResponse(input);
       const parsed = response.data.map(parseWalletTransaction);
-      if (cursor !== undefined) {
-        if (parsed[0]?.transactionId !== cursor) {
-          throw new Error("Transaction incremental pagination did not repeat its cursor");
-        }
+      if (cursor !== undefined && parsed[0]?.transactionId !== cursor) {
+        throw new Error("Transaction incremental pagination did not repeat its cursor");
       }
 
       const crossedHighWater = parsed.some(
@@ -74,20 +83,10 @@ async function syncTransactions(
         checkpoint.latestId
       );
 
-      await store.saveTransactionsPage(
-        evidenceInput(
-          syncRunId,
-          "transactions",
-          TRANSACTIONS_ENDPOINT,
-          response,
-          cursor === undefined ? {} : { from_id: cursor },
-          null,
-          cursor ?? null,
-          parsed.length
-        ),
-        parsed,
-        { ...checkpoint, latestId: nextLatest }
-      );
+      await store.saveTransactionsPage(evidenceId, parsed, {
+        ...checkpoint,
+        latestId: nextLatest
+      });
       checkpoint = { ...checkpoint, latestId: nextLatest };
       stored += parsed.length - (cursor === undefined ? 0 : 1);
 
@@ -108,14 +107,24 @@ async function syncTransactions(
     let cursor = checkpoint.backfillCursor;
     for (let index = 0; index < maxPages; index += 1) {
       const response = await esi.getTransactions(corporationId, cursor ?? undefined);
+      const input = evidenceInput(
+        syncRunId,
+        "transactions",
+        TRANSACTIONS_ENDPOINT,
+        response,
+        cursor === null ? {} : { from_id: cursor },
+        null,
+        cursor,
+        response.data.length
+      );
+      const evidenceId = await store.captureResponse(input);
       const parsed = response.data.map(parseWalletTransaction);
 
       if (cursor !== null && parsed[0]?.transactionId !== cursor) {
         throw new Error("Transaction backfill did not repeat its stored cursor");
       }
 
-      const exhausted =
-        parsed.length === 0 || (cursor !== null && parsed.length === 1);
+      const exhausted = parsed.length === 0 || (cursor !== null && parsed.length === 1);
       const nextCursor = exhausted ? cursor : parsed[parsed.length - 1]?.transactionId ?? null;
       if (!exhausted && nextCursor === null) {
         throw new Error("Transaction backfill returned records without a cursor");
@@ -134,20 +143,7 @@ async function syncTransactions(
         backfillComplete: exhausted
       };
 
-      await store.saveTransactionsPage(
-        evidenceInput(
-          syncRunId,
-          "transactions",
-          TRANSACTIONS_ENDPOINT,
-          response,
-          cursor === null ? {} : { from_id: cursor },
-          null,
-          cursor,
-          parsed.length
-        ),
-        parsed,
-        nextCheckpoint
-      );
+      await store.saveTransactionsPage(evidenceId, parsed, nextCheckpoint);
       checkpoint = nextCheckpoint;
       stored += parsed.length - (cursor === null ? 0 : 1);
 
@@ -167,6 +163,18 @@ async function syncJournal(
   syncRunId: string
 ): Promise<number> {
   const first = await esi.getJournal(corporationId, 1);
+  const firstEvidence = await store.captureResponse(
+    evidenceInput(
+      syncRunId,
+      "journal",
+      JOURNAL_ENDPOINT,
+      first,
+      { page: "1" },
+      1,
+      null,
+      first.data.length
+    )
+  );
   const pageCount = first.headers.xPages;
   if (pageCount === null || pageCount < 1 || pageCount > 10_000) {
     throw new Error("Journal response is missing a valid X-Pages count");
@@ -175,23 +183,27 @@ async function syncJournal(
   let stored = 0;
   for (let page = 1; page <= pageCount; page += 1) {
     const response = page === 1 ? first : await esi.getJournal(corporationId, page);
+    const evidenceId =
+      page === 1
+        ? firstEvidence
+        : await store.captureResponse(
+            evidenceInput(
+              syncRunId,
+              "journal",
+              JOURNAL_ENDPOINT,
+              response,
+              { page: String(page) },
+              page,
+              null,
+              response.data.length
+            )
+          );
+
     if (response.headers.xPages !== pageCount) {
       throw new Error("Journal X-Pages changed during sync; journal run is incomplete");
     }
     const records: WalletJournalEntry[] = response.data.map(parseWalletJournalEntry);
-    await store.saveJournalPage(
-      evidenceInput(
-        syncRunId,
-        "journal",
-        JOURNAL_ENDPOINT,
-        response,
-        { page: String(page) },
-        page,
-        null,
-        records.length
-      ),
-      records
-    );
+    await store.saveJournalPage(evidenceId, records);
     stored += records.length;
   }
   return stored;
@@ -204,11 +216,7 @@ async function syncBalance(
   syncRunId: string
 ): Promise<number> {
   const response = await esi.getWallets(corporationId);
-  const balances: WalletBalance[] = response.data.map(parseWalletBalance);
-  const masterWallet = balances.find((balance) => balance.division === 1);
-  if (!masterWallet) throw new Error("ESI response did not contain corporation wallet division 1");
-
-  await store.saveBalanceSnapshot(
+  const evidenceId = await store.captureResponse(
     evidenceInput(
       syncRunId,
       "balance",
@@ -217,10 +225,14 @@ async function syncBalance(
       {},
       null,
       null,
-      balances.length
-    ),
-    masterWallet
+      response.data.length
+    )
   );
+  const balances: WalletBalance[] = response.data.map(parseWalletBalance);
+  const masterWallet = balances.find((balance) => balance.division === 1);
+  if (!masterWallet) throw new Error("ESI response did not contain corporation wallet division 1");
+
+  await store.saveBalanceSnapshot(evidenceId, masterWallet, response.retrievedAt);
   return 1;
 }
 
