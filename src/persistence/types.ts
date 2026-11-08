@@ -9,7 +9,6 @@ export type EvidenceSource = "transactions" | "journal" | "balance";
 
 export type EvidenceInput<T> = {
   syncRunId: string;
-  corporationId: string;
   source: EvidenceSource;
   endpoint: string;
   requestParams: Record<string, string>;
@@ -34,17 +33,16 @@ export interface WalletStore {
     errorSummary?: string
   ): Promise<void>;
   getTransactionCheckpoint(corporationId: string): Promise<TransactionCheckpoint>;
+  captureResponse<T>(input: EvidenceInput<T>): Promise<string>;
   saveTransactionsPage(
-    input: EvidenceInput<unknown[]>,
+    evidenceId: string,
     records: WalletTransaction[],
     checkpoint: TransactionCheckpoint
   ): Promise<void>;
-  saveJournalPage(
-    input: EvidenceInput<unknown[]>,
-    records: WalletJournalEntry[]
-  ): Promise<void>;
+  saveJournalPage(evidenceId: string, records: WalletJournalEntry[]): Promise<void>;
   saveBalanceSnapshot(
-    input: EvidenceInput<unknown[]>,
-    balance: WalletBalance
+    evidenceId: string,
+    balance: WalletBalance,
+    retrievedAt: Date
   ): Promise<void>;
 }
