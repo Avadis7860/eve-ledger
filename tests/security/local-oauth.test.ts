@@ -94,7 +94,9 @@ describe("completeOAuthCallback", () => {
 
   it("does not store a token if the exchange fails", async () => {
     const sso = {
-      exchangeAuthorizationCode: vi.fn().mockRejectedValue(new Error("bad token")),
+      exchangeAuthorizationCode: vi
+        .fn()
+        .mockRejectedValue(new Error("bad token")),
     } as unknown as Pick<EveSsoClient, "exchangeAuthorizationCode">;
     const vault = {
       write: vi.fn(),
