@@ -23,8 +23,8 @@ Completion gate:
 
 Implemented:
 
-- EVE SSO refresh-token provider with least-scope wallet authorization, access-token caching, and refresh-token rotation support.
-- Authenticated versioned ESI client with compatibility-date pinning, bounded transient retries, and ESI error-budget handling.
+- Native EVE SSO Authorization Code with PKCE (S256), state-checked loopback callback, metadata discovery, and JWT signature/claim verification.
+- Encrypted refresh-token persistence, native PKCE refresh-token rotation, and authenticated versioned ESI client with compatibility-date pinning, bounded retries, and ESI error-budget handling.
 - Division 1 transactions, journal pages, and balance endpoint adapters.
 - Lossless numeric JSON parsing and exact decimal storage.
 - Immutable raw response evidence, SHA-256 hashes, normalized records, idempotency/conflict detection, and transaction checkpoints.
