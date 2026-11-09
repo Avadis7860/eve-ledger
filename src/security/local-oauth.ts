@@ -89,7 +89,6 @@ export async function completeOAuthCallback(
   parameters: URLSearchParams,
   expectedState: string,
   codeVerifier: string,
-  redirectUri: string,
   sso: Pick<EveSsoClient, "exchangeAuthorizationCode">,
   vault: Pick<RefreshTokenVault, "write">,
 ): Promise<VerifiedClaims> {
@@ -198,7 +197,6 @@ export async function authorizeWithLocalCallback(
             callbackUrl.searchParams,
             authorization.state,
             authorization.codeVerifier,
-            config.redirectUri,
             sso,
             vault,
           );
@@ -207,20 +205,14 @@ export async function authorizeWithLocalCallback(
             200,
             `<h1>Authorization complete</h1><p>EVE Ledger is authorized for <strong>${escapeHtml(claims.characterName)}</strong>.</p><p>You can close this tab and return to the terminal.</p>`,
           );
-          if (!settled) {
-            settled = true;
-            resolve(claims);
-          }
+          finish(undefined, claims);
         } catch {
           secureResponse(
             response,
             400,
             "<h1>Authorization failed</h1><p>The EVE SSO response could not be verified or saved. Return to the terminal for details and try again.</p>",
           );
-          if (!settled) {
-            settled = true;
-            reject(new Error("EVE SSO callback exchange or verification failed"));
-          }
+          finish(new Error("EVE SSO callback exchange or verification failed"));
         }
       })();
     });
@@ -229,7 +221,7 @@ export async function authorizeWithLocalCallback(
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      server.close();
+      if (server.listening) server.close();
       if (error) reject(error);
       else if (claims) resolve(claims);
       else reject(new Error("EVE SSO authorization ended without a result"));
