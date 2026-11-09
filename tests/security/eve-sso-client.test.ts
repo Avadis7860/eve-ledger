@@ -1,8 +1,4 @@
-import {
-  createHash,
-  generateKeyPairSync,
-  sign,
-} from "node:crypto";
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   CORPORATION_WALLET_SCOPE,
@@ -13,7 +9,10 @@ const CLIENT_ID = "native-client-id";
 const REDIRECT_URI = "http://127.0.0.1:3000/auth/callback";
 const NOW = 1_800_000_000_000;
 
-function createFixture(scope = CORPORATION_WALLET_SCOPE, audience = [CLIENT_ID, "EVE Online"]) {
+function createFixture(
+  scope = CORPORATION_WALLET_SCOPE,
+  audience = [CLIENT_ID, "EVE Online"],
+) {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
   });
@@ -37,8 +36,12 @@ function createFixture(scope = CORPORATION_WALLET_SCOPE, audience = [CLIENT_ID, 
     scp: [scope],
   };
   const header = { alg: "RS256", kid: "test-rsa-key", typ: "JWT" };
-  const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
-  const encodedClaims = Buffer.from(JSON.stringify(claims)).toString("base64url");
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString(
+    "base64url",
+  );
+  const encodedClaims = Buffer.from(JSON.stringify(claims)).toString(
+    "base64url",
+  );
   const signature = sign(
     "RSA-SHA256",
     Buffer.from(`${encodedHeader}.${encodedClaims}`),
@@ -53,7 +56,8 @@ function createFixture(scope = CORPORATION_WALLET_SCOPE, audience = [CLIENT_ID, 
     if (url.pathname === "/.well-known/oauth-authorization-server") {
       return new Response(
         JSON.stringify({
-          authorization_endpoint: "https://login.eveonline.com/v2/oauth/authorize",
+          authorization_endpoint:
+            "https://login.eveonline.com/v2/oauth/authorize",
           token_endpoint: "https://login.eveonline.com/v2/oauth/token",
           jwks_uri: "https://login.eveonline.com/oauth/jwks",
         }),
@@ -94,7 +98,12 @@ function createFixture(scope = CORPORATION_WALLET_SCOPE, audience = [CLIENT_ID, 
 describe("EveSsoClient", () => {
   it("builds an S256 PKCE request with a cryptographically random state and verifier", async () => {
     const fixture = createFixture();
-    const sso = new EveSsoClient(CLIENT_ID, REDIRECT_URI, fixture.request, () => NOW);
+    const sso = new EveSsoClient(
+      CLIENT_ID,
+      REDIRECT_URI,
+      fixture.request,
+      () => NOW,
+    );
 
     const authorization = await sso.createAuthorizationRequest();
     const url = new URL(authorization.url);
@@ -115,7 +124,12 @@ describe("EveSsoClient", () => {
 
   it("exchanges authorization codes without a client secret and verifies the JWT", async () => {
     const fixture = createFixture();
-    const sso = new EveSsoClient(CLIENT_ID, REDIRECT_URI, fixture.request, () => NOW);
+    const sso = new EveSsoClient(
+      CLIENT_ID,
+      REDIRECT_URI,
+      fixture.request,
+      () => NOW,
+    );
 
     const result = await sso.exchangeAuthorizationCode(
       "one-time-code",
@@ -137,7 +151,12 @@ describe("EveSsoClient", () => {
 
   it("uses the native refresh-token form contract", async () => {
     const fixture = createFixture();
-    const sso = new EveSsoClient(CLIENT_ID, REDIRECT_URI, fixture.request, () => NOW);
+    const sso = new EveSsoClient(
+      CLIENT_ID,
+      REDIRECT_URI,
+      fixture.request,
+      () => NOW,
+    );
 
     await sso.refreshAccessToken("existing-refresh-token");
 
@@ -151,7 +170,12 @@ describe("EveSsoClient", () => {
 
   it("rejects tokens that do not grant the corporation wallet scope", async () => {
     const fixture = createFixture("esi-wallet.read_character_wallet.v1");
-    const sso = new EveSsoClient(CLIENT_ID, REDIRECT_URI, fixture.request, () => NOW);
+    const sso = new EveSsoClient(
+      CLIENT_ID,
+      REDIRECT_URI,
+      fixture.request,
+      () => NOW,
+    );
 
     await expect(
       sso.exchangeAuthorizationCode("code", "a".repeat(43)),
@@ -159,8 +183,16 @@ describe("EveSsoClient", () => {
   });
 
   it("rejects a token with an audience for another application", async () => {
-    const fixture = createFixture(CORPORATION_WALLET_SCOPE, ["another-client", "EVE Online"]);
-    const sso = new EveSsoClient(CLIENT_ID, REDIRECT_URI, fixture.request, () => NOW);
+    const fixture = createFixture(CORPORATION_WALLET_SCOPE, [
+      "another-client",
+      "EVE Online",
+    ]);
+    const sso = new EveSsoClient(
+      CLIENT_ID,
+      REDIRECT_URI,
+      fixture.request,
+      () => NOW,
+    );
 
     await expect(
       sso.exchangeAuthorizationCode("code", "a".repeat(43)),
