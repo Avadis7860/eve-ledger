@@ -33,20 +33,22 @@ The implementation branch currently contains the first M0/M1 slice:
 
 - strict TypeScript project, ESLint, Prettier, Vitest, and GitHub Actions quality workflow;
 - versioned PostgreSQL schema and migration runner;
-- EVE SSO refresh-token provider with AES-256-GCM encryption for rotated refresh tokens stored in PostgreSQL;
+- native EVE SSO Authorization Code with PKCE (S256), using the system browser and a loopback-only callback;
+- JWT verification against EVE SSO JWKS, issuer, audience, expiry, character subject, and the required corporation wallet scope;
+- AES-256-GCM encrypted refresh-token storage and native PKCE refresh-token rotation handling;
 - authenticated ESI client with a pinned compatibility date, bounded retries, and ESI error-budget handling;
 - separate transaction `from_id` and journal `X-Pages` pagination;
 - raw response capture with SHA-256, retrieval metadata, and append-only enforcement;
 - idempotent normalized transaction/journal persistence and wallet division 1 balance snapshots;
-- a local sync command and unit tests for numeric precision, pagination boundaries, token refresh, and partial-run behavior.
+- local authorization and wallet sync commands with unit and PostgreSQL integration tests.
 
-M0/M1 are **not considered production-complete** until the GitHub workflow is green, migrations are exercised against PostgreSQL, and a real authorized ESI read is validated with the corporation's role and scope. The local OAuth authorization/callback bootstrap is not implemented yet; the current command expects an already-issued refresh token.
+The implementation is **not production-ready** until a real authorized division 1 ESI read and a repeated sync have been validated against the corporation's role, scope, and live response behavior.
 
 ## Quick start
 
-Requirements: Node.js 22+, PostgreSQL, and an EVE SSO application configured for the corporation wallet read scope.
+Requirements: Node.js 22.13+, PostgreSQL, and an EVE SSO **native application** configured with the corporation wallet read scope.
 
-1. Install dependencies:
+1. Install locked dependencies:
 
    ```bash
    npm ci
@@ -58,34 +60,50 @@ Requirements: Node.js 22+, PostgreSQL, and an EVE SSO application configured for
    cp .env.example .env
    ```
 
-3. Fill in `DATABASE_URL`, `ESI_CORPORATION_ID`, `ESI_CLIENT_ID`, `ESI_CLIENT_SECRET`, and an already-authorized `ESI_REFRESH_TOKEN`. The granted scope must include `esi-wallet.read_corporation_wallets.v1`. Do not paste credentials or tokens into chat, issues, logs, or commits.
+3. Fill in `DATABASE_URL`, `ESI_CORPORATION_ID`, `ESI_CLIENT_ID`, and `TOKEN_ENCRYPTION_KEY`. In the EVE Developers Portal, configure the application as a native application, enable `esi-wallet.read_corporation_wallets.v1`, and register this exact callback URL:
 
-4. Generate a 32-byte key and put its Base64 output in `TOKEN_ENCRYPTION_KEY`:
+   ```text
+   http://127.0.0.1:3000/auth/callback
+   ```
+
+   Keep `ESI_REDIRECT_URI` identical to the registered URL. The local native flow uses PKCE and does not use an ESI client secret. Never paste credentials or tokens into chat, issues, logs, or commits.
+
+4. Generate a 32-byte encryption key and put its Base64 output in `TOKEN_ENCRYPTION_KEY`:
 
    ```bash
    openssl rand -base64 32
    ```
 
-   The key encrypts refresh-token rotations stored in PostgreSQL. Keep a secure backup; losing it makes stored rotated tokens unreadable.
+   The key encrypts refresh tokens stored in PostgreSQL. Keep a secure backup; losing it makes stored tokens unreadable.
 
-5. Apply the database schema and run the first collection:
+5. Apply the database schema and authorize the EVE character:
 
    ```bash
    npm run db:migrate
+   npm run auth:login
+   ```
+
+   `auth:login` starts a local callback bound only to `127.0.0.1`, opens the system browser, and requests only the corporation wallet read scope. It validates the returned token before writing the refresh token to PostgreSQL. The EVE login and consent happen on CCP's EVE SSO pages; EVE account credentials are never entered into EVE Ledger.
+
+6. Start the first collection:
+
+   ```bash
    npm run sync:wallet
    ```
 
-The migration command requires only `DATABASE_URL`. The sync command requires the ESI configuration and database schema. Each run creates a `sync_runs` record. Endpoint failures produce a `partial` run rather than a false success.
+The migration command requires only `DATABASE_URL`. Authorization and sync also require the local ESI configuration and database schema. Each sync creates a `sync_runs` record. Endpoint failures produce a `partial` or `failed` run rather than a false success.
+
+An optional `ESI_REFRESH_TOKEN` environment variable is supported only as a one-time local migration seed; normal setup uses `auth:login` and encrypted database storage.
 
 During local development, run `npm run format` before committing. CI checks formatting but never modifies the branch or requires write permissions.
 
 ## ESI source contracts
 
-| Dataset             | Versioned endpoint                                              | Collection model                   | Important limitation                                         |
-| ------------------- | --------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
+| Dataset | Versioned endpoint | Collection model | Important limitation |
+|---|---|---|---|
 | Wallet transactions | `GET /v1/corporations/{corporation_id}/wallets/1/transactions/` | `from_id` cursor, newest to oldest | Separate retention behavior; do not assume unlimited history |
-| Wallet journal      | `GET /v4/corporations/{corporation_id}/wallets/1/journal/`      | Page number and `X-Pages`          | Rolling 30-day history                                       |
-| Wallet balances     | `GET /v1/corporations/{corporation_id}/wallets/`                | Snapshot                           | Current observation only                                     |
+| Wallet journal | `GET /v4/corporations/{corporation_id}/wallets/1/journal/` | Page number and `X-Pages` | Rolling 30-day history |
+| Wallet balances | `GET /v1/corporations/{corporation_id}/wallets/` | Snapshot | Current observation only |
 
 ESI requests send `X-Compatibility-Date` (default pinned to `2026-11-09`) and a `User-Agent`. Update the compatibility date only after reviewing the corresponding ESI changes and updating tests/contracts.
 
@@ -103,4 +121,4 @@ ESI requests send `X-Compatibility-Date` (default pinned to `2026-11-09`) and a 
 
 ## Secret handling
 
-Never commit `.env`, ESI client secrets, access tokens, refresh tokens, or database passwords. Raw wallet evidence is financial data and must remain in the private database; do not publish real wallet exports or database backups.
+Never commit `.env`, refresh tokens, access tokens, or database passwords. The local EVE SSO flow is PKCE-based and does not use a client secret. Raw wallet evidence is financial data and must remain in the private database; do not publish real wallet exports or database backups.
