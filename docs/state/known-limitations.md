@@ -11,10 +11,10 @@
 
 ## Current implementation gaps
 
-- Native EVE SSO PKCE authorization and the loopback callback are implemented in code; registration and a real authorized login against the user's EVE SSO application remain unvalidated.
+- Native EVE SSO PKCE authorization and the loopback callback are implemented and pass automated tests. The exact redirect URI still needs to be registered in the user's native EVE SSO application, and a real authorized login remains unvalidated.
 - The implementation has not yet been exercised with the user's live corporation ID, ESI application, corporation role, or actual wallet responses.
 - PostgreSQL 16 migrations and transactional persistence integration tests pass in GitHub Actions; migrations have been applied twice successfully.
-- GitHub Actions quality gates are green, and dependency installation is reproducible from the committed lockfile with `npm ci`.
+- GitHub Actions run #106 is green on the current PR HEAD: PostgreSQL 16 migrations twice, `npm ci`, Prettier, ESLint 10, strict TypeScript, and 42 tests across 9 files. Dependency installation is reproducible from the committed lockfile.
 - Monitoring UI, scheduler, alerting, and a journal freshness dashboard are not implemented.
 
 ## Must be validated during implementation
