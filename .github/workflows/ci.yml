@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
     branches: [main]
 
 permissions:
@@ -50,20 +50,5 @@ jobs:
         run: |
           npm run db:migrate
           npm run db:migrate
-      - name: Format working tree for repository artifact
-        run: npm run format
-      - name: Upload Prettier-formatted files
-        uses: actions/upload-artifact@v4
-        with:
-          name: eve-ledger-prettier-format
-          path: |
-            README.md
-            docs/security/eve-sso-native-pkce.md
-            src/security/eve-sso-client.ts
-            src/security/local-oauth.ts
-            tests/config/env.test.ts
-            tests/security/eve-sso-client.test.ts
-            tests/security/local-oauth.test.ts
-          retention-days: 1
       - name: Run quality gates
         run: npm run check
