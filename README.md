@@ -113,6 +113,7 @@ ESI requests send `X-Compatibility-Date` (default pinned to `2026-11-09`) and a 
 - [Data flow](docs/architecture/data-flow.md)
 - [Financial domain model](docs/domain/financial-model.md)
 - [ESI source contracts](docs/ingestion/esi-source-contracts.md)
+- [Local EVE SSO PKCE security contract](docs/security/eve-sso-native-pkce.md)
 - [Backfill and synchronization](docs/ingestion/backfill-and-sync.md)
 - [Integrity and reconciliation](docs/reconciliation/coverage-and-integrity.md)
 - [Cash flow and volatility](docs/analytics/cash-flow-and-volatility.md)
