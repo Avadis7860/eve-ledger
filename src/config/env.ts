@@ -12,7 +12,7 @@ const environmentSchema = z.object({
   TOKEN_ENCRYPTION_KEY: z.string().min(1),
   ESI_COMPATIBILITY_DATE: z
     .string()
-    .regex(/^\\d{4}-\\d{2}-\\d{2}$/)
+    .regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)
     .default("2026-11-09"),
   ESI_USER_AGENT: z.string().min(8).default("EVE-Ledger/0.1"),
 });
