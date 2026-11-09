@@ -9,6 +9,7 @@ Do not label net wallet movement as net profit.
 ## Volatility
 
 A volatility metric must state:
+
 - exact measurement window and timezone;
 - sampling cadence and whether values are daily, transaction-level, or event-level;
 - formula and units;
