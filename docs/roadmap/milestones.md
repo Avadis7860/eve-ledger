@@ -24,6 +24,7 @@ Completion gate:
 Implemented:
 
 - Native EVE SSO Authorization Code with PKCE (S256), state-checked loopback callback, metadata discovery, and JWT signature/claim verification.
+- Local `npm run auth:login` command opens the system browser and stores the verified refresh token encrypted in PostgreSQL.
 - Encrypted refresh-token persistence, native PKCE refresh-token rotation, and authenticated versioned ESI client with compatibility-date pinning, bounded retries, and ESI error-budget handling.
 - Division 1 transactions, journal pages, and balance endpoint adapters.
 - Lossless numeric JSON parsing and exact decimal storage.
@@ -33,7 +34,7 @@ Implemented:
 
 Completion gate:
 
-- Automated quality gates are green: Prettier, ESLint, strict TypeScript, and all 22 tests across 6 files.
+- Automated quality gates are green: Prettier, ESLint, strict TypeScript, and all 42 tests across 9 files.
 - PostgreSQL 16 migrations and store behavior are verified in CI.
 - Valid corporation ID, scope, and required corporation role confirmed through a real ESI read.
 - Observed page boundaries, cache behavior, role access, and journal field semantics compared with live ESI responses.
