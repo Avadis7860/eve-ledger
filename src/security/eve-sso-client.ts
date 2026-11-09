@@ -385,8 +385,8 @@ export class EveSsoClient {
         kid: nonEmptyString(key.kid, "JWK key ID"),
         n: nonEmptyString(key.n, "JWK modulus"),
         e: nonEmptyString(key.e, "JWK exponent"),
-        alg: typeof key.alg === "string" ? key.alg : undefined,
-        use: typeof key.use === "string" ? key.use : undefined,
+        ...(typeof key.alg === "string" ? { alg: key.alg } : {}),
+        ...(typeof key.use === "string" ? { use: key.use } : {}),
       };
     });
     this.jwksCache = {
