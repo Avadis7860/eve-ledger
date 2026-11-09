@@ -8,8 +8,14 @@ This document records the ESI contract used by the current implementation. The l
 - Required scope: `esi-wallet.read_corporation_wallets.v1`.
 - Required corporation role: Accountant or Junior Accountant, subject to CCP's current route contract.
 - Corporation ID, client credentials, and initial refresh token are local environment configuration.
-- The refresh-token provider requests only the wallet scope, caches short-lived access tokens, and persists any rotated refresh token encrypted in PostgreSQL.
-- The initial browser authorization-code/callback bootstrap is not yet implemented. A valid refresh token must already have been obtained through an approved EVE SSO authorization flow.
+- EVE Ledger is a local native application and uses Authorization Code with PKCE (S256), not a confidential web-app client secret.
+- The local callback is bound only to `127.0.0.1`, at the exact `ESI_REDIRECT_URI` registered in the EVE Developers Portal. The default is `http://127.0.0.1:3000/auth/callback`.
+- The authorization request includes `response_type=code`, `client_id`, exact `redirect_uri`, the single wallet scope, a cryptographically random `state`, and an S256 PKCE challenge.
+- The callback validates `state` using constant-time comparison and accepts exactly one authorization code.
+- The token exchange is form-encoded and includes `grant_type=authorization_code`, `code`, `client_id`, `redirect_uri`, and `code_verifier`. No Basic authorization header or client secret is used.
+- Access-token JWTs are verified using the JWKS URI discovered from EVE SSO metadata. Validation includes RS256 signature, accepted issuer, both expected audience values, expiry, character subject, and the required wallet scope.
+- The refresh-token provider uses the native-app form contract (`client_id`, refresh token, and the requested wallet scope), caches verified short-lived access tokens, and persists any rotated refresh token encrypted in PostgreSQL.
+- Use `npm run auth:login` for the local browser authorization flow. A legacy `ESI_REFRESH_TOKEN` environment value is accepted only as an optional one-time migration seed.
 
 ## Corporate wallet transactions
 
@@ -58,4 +64,5 @@ Raw response rows are append-only at the database layer. Numeric JSON lexemes ar
 
 - [ESI overview and compatibility dates](https://developers.eveonline.com/docs/services/esi/overview/)
 - [ESI API Explorer](https://developers.eveonline.com/api-explorer)
-- [EVE SSO](https://developers.eveonline.com/docs/services/sso/)
+- [EVE SSO Authorization Code and PKCE, JWT validation](https://developers.eveonline.com/docs/services/sso/)
+- [SSO endpoint deprecations and native PKCE requirements](https://developers.eveonline.com/blog/sso-endpoint-deprecations-2)
