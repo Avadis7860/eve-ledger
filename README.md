@@ -99,11 +99,11 @@ During local development, run `npm run format` before committing. CI checks form
 
 ## ESI source contracts
 
-| Dataset | Versioned endpoint | Collection model | Important limitation |
-|---|---|---|---|
+| Dataset             | Versioned endpoint                                              | Collection model                   | Important limitation                                         |
+| ------------------- | --------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
 | Wallet transactions | `GET /v1/corporations/{corporation_id}/wallets/1/transactions/` | `from_id` cursor, newest to oldest | Separate retention behavior; do not assume unlimited history |
-| Wallet journal | `GET /v4/corporations/{corporation_id}/wallets/1/journal/` | Page number and `X-Pages` | Rolling 30-day history |
-| Wallet balances | `GET /v1/corporations/{corporation_id}/wallets/` | Snapshot | Current observation only |
+| Wallet journal      | `GET /v4/corporations/{corporation_id}/wallets/1/journal/`      | Page number and `X-Pages`          | Rolling 30-day history                                       |
+| Wallet balances     | `GET /v1/corporations/{corporation_id}/wallets/`                | Snapshot                           | Current observation only                                     |
 
 ESI requests send `X-Compatibility-Date` (default pinned to `2026-11-09`) and a `User-Agent`. Update the compatibility date only after reviewing the corresponding ESI changes and updating tests/contracts.
 
