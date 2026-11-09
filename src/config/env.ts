@@ -4,8 +4,11 @@ const environmentSchema = z.object({
   DATABASE_URL: z.string().url().or(z.string().startsWith("postgresql://")),
   ESI_CORPORATION_ID: z.string().regex(/^[1-9][0-9]*$/),
   ESI_CLIENT_ID: z.string().min(1),
-  ESI_CLIENT_SECRET: z.string().min(1),
-  ESI_REFRESH_TOKEN: z.string().min(1),
+  ESI_REFRESH_TOKEN: z.string().min(1).optional(),
+  ESI_REDIRECT_URI: z
+    .string()
+    .url()
+    .default("http://127.0.0.1:3000/auth/callback"),
   TOKEN_ENCRYPTION_KEY: z.string().min(1),
   ESI_COMPATIBILITY_DATE: z
     .string()
@@ -18,8 +21,8 @@ export type AppConfig = {
   databaseUrl: string;
   corporationId: string;
   clientId: string;
-  clientSecret: string;
-  initialRefreshToken: string;
+  initialRefreshToken: string | null;
+  redirectUri: string;
   tokenEncryptionKey: Buffer;
   compatibilityDate: string;
   userAgent: string;
@@ -43,8 +46,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     databaseUrl: parsed.data.DATABASE_URL,
     corporationId: parsed.data.ESI_CORPORATION_ID,
     clientId: parsed.data.ESI_CLIENT_ID,
-    clientSecret: parsed.data.ESI_CLIENT_SECRET,
-    initialRefreshToken: parsed.data.ESI_REFRESH_TOKEN,
+    initialRefreshToken: parsed.data.ESI_REFRESH_TOKEN ?? null,
+    redirectUri: parsed.data.ESI_REDIRECT_URI,
     tokenEncryptionKey: key,
     compatibilityDate: parsed.data.ESI_COMPATIBILITY_DATE,
     userAgent: parsed.data.ESI_USER_AGENT,
