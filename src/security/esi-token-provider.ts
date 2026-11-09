@@ -1,21 +1,21 @@
 import type { AppConfig } from "../config/env.js";
 import type { RefreshTokenVault } from "./refresh-token-vault.js";
+import { EveSsoClient } from "./eve-sso-client.js";
 
-type TokenResponse = {
-  access_token: string;
-  token_type: "Bearer";
-  expires_in: number;
-  refresh_token?: string;
-};
+type SsoRefreshClient = Pick<EveSsoClient, "refreshAccessToken">;
 
 export class EsiTokenProvider {
   private cachedAccessToken: string | null = null;
   private expiresAt = 0;
+  private refreshInFlight: Promise<string> | null = null;
 
   constructor(
     private readonly config: AppConfig,
     private readonly vault: RefreshTokenVault,
-    private readonly request: typeof fetch = fetch,
+    private readonly sso: SsoRefreshClient = new EveSsoClient(
+      config.clientId,
+      config.redirectUri,
+    ),
     private readonly now: () => number = Date.now,
   ) {}
 
@@ -24,56 +24,41 @@ export class EsiTokenProvider {
       return this.cachedAccessToken;
     }
 
-    const refreshToken =
-      (await this.vault.read()) ?? this.config.initialRefreshToken;
-    const body = new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-      scope: "esi-wallet.read_corporation_wallets.v1",
-    });
-
-    const response = await this.request(
-      "https://login.eveonline.com/v2/oauth/token",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${this.config.clientId}:${this.config.clientSecret}`,
-          ).toString("base64")}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-        },
-        body,
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `EVE SSO token refresh failed with HTTP ${response.status}`,
-      );
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.refreshAccessToken();
     }
-
-    const payload = (await response.json()) as TokenResponse;
-    if (
-      typeof payload.access_token !== "string" ||
-      payload.token_type !== "Bearer" ||
-      !Number.isInteger(payload.expires_in) ||
-      payload.expires_in <= 0
-    ) {
-      throw new Error("EVE SSO returned an invalid token response");
+    const pending = this.refreshInFlight;
+    try {
+      return await pending;
+    } finally {
+      if (this.refreshInFlight === pending) this.refreshInFlight = null;
     }
-
-    if (payload.refresh_token && payload.refresh_token !== refreshToken) {
-      await this.vault.write(payload.refresh_token);
-    }
-
-    this.cachedAccessToken = payload.access_token;
-    this.expiresAt = this.now() + payload.expires_in * 1000;
-    return payload.access_token;
   }
 
   invalidate(): void {
     this.cachedAccessToken = null;
     this.expiresAt = 0;
+  }
+
+  private async refreshAccessToken(): Promise<string> {
+    const storedRefreshToken = await this.vault.read();
+    const refreshToken = storedRefreshToken ?? this.config.initialRefreshToken;
+    if (!refreshToken) {
+      throw new Error(
+        "No EVE SSO refresh token is stored. Run npm run auth:login first.",
+      );
+    }
+
+    const token = await this.sso.refreshAccessToken(refreshToken);
+    const nextRefreshToken = token.refreshToken ?? refreshToken;
+
+    // Persist the initial seed and any rotated token before exposing the access token.
+    if (nextRefreshToken !== storedRefreshToken) {
+      await this.vault.write(nextRefreshToken);
+    }
+
+    this.cachedAccessToken = token.accessToken;
+    this.expiresAt = this.now() + token.expiresIn * 1000;
+    return token.accessToken;
   }
 }
