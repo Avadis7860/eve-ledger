@@ -17,9 +17,7 @@ describe("loadConfig", () => {
 
     expect(config.clientId).toBe("native-client-id");
     expect(config.initialRefreshToken).toBeNull();
-    expect(config.redirectUri).toBe(
-      "http://127.0.0.1:3000/auth/callback",
-    );
+    expect(config.redirectUri).toBe("http://127.0.0.1:3000/auth/callback");
   });
 
   it("accepts a valid ESI compatibility date and optional token seed", () => {
