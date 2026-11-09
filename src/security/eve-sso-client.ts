@@ -216,9 +216,7 @@ export class EveSsoClient {
     };
   }
 
-  private async verifyAccessToken(
-    token: string,
-  ): Promise<{
+  private async verifyAccessToken(token: string): Promise<{
     characterId: string;
     characterName: string;
     scopes: string[];
@@ -254,9 +252,7 @@ export class EveSsoClient {
       "ascii",
     );
     const signature = Buffer.from(encodedSignature, "base64url");
-    if (
-      !verifySignature("RSA-SHA256", signedContent, publicKey, signature)
-    ) {
+    if (!verifySignature("RSA-SHA256", signedContent, publicKey, signature)) {
       throw new Error("EVE SSO access-token signature verification failed");
     }
 
@@ -276,7 +272,9 @@ export class EveSsoClient {
       !audience.includes(this.clientId) ||
       !audience.includes("EVE Online")
     ) {
-      throw new Error("EVE SSO access token was issued for another application");
+      throw new Error(
+        "EVE SSO access token was issued for another application",
+      );
     }
 
     const nowSeconds = Math.floor(this.now() / 1000);
@@ -337,10 +335,7 @@ export class EveSsoClient {
   }
 
   private async getMetadata(): Promise<SsoMetadata> {
-    if (
-      this.metadataCache &&
-      this.metadataCache.expiresAt > this.now()
-    ) {
+    if (this.metadataCache && this.metadataCache.expiresAt > this.now()) {
       return this.metadataCache.value;
     }
 
