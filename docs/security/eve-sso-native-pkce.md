@@ -19,12 +19,13 @@ Default:
 `http://127.0.0.1:3000/auth/callback`
 
 The callback server:
+
 - binds only to IPv4 loopback `127.0.0.1`;
 - accepts only the configured callback path and exact origin;
 - has a five-minute timeout;
 - never listens on a LAN interface or public address.
 
-If the port is already in use, change the port in `ESI_REDIRECT_URI` and register that exact new URL in the EVE Developers Portal.
+If the port is already in use, change the port in `ESI_REDIRECT_URI` and register that exact URL in the EVE Developers Portal.
 
 ## Authorization request
 
@@ -33,6 +34,7 @@ The client discovers the authorization, token, and JWKS endpoints from:
 `https://login.eveonline.com/.well-known/oauth-authorization-server`
 
 It generates:
+
 - a random 32-byte `state`;
 - a random 32-byte PKCE verifier;
 - an S256 challenge calculated from the verifier.
@@ -44,6 +46,7 @@ The authorization URL carries `response_type=code`, `client_id`, the registered 
 The callback requires exactly one `state` and one authorization `code`. State is compared with a constant-time comparison before exchanging any code. SSO error responses or malformed/duplicate parameters fail closed.
 
 The token request is `application/x-www-form-urlencoded` and contains:
+
 - `grant_type=authorization_code`;
 - the one-time `code`;
 - `client_id`;
@@ -55,6 +58,7 @@ No HTTP Basic header or client secret is used in this native PKCE flow.
 ## Access-token verification
 
 Before a refresh token is persisted, the access-token JWT must pass:
+
 - RS256 signature verification using the public key selected by `kid` from the discovered JWKS;
 - issuer validation for the EVE SSO issuer;
 - audience validation requiring both this app's client ID and `EVE Online`;
