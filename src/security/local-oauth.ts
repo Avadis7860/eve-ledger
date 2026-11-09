@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { execFile } from "node:child_process";
 import { createServer } from "node:http";
+import type { ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { promisify } from "node:util";
 import type { AppConfig } from "../config/env.js";
@@ -27,14 +28,14 @@ function escapeHtml(value: string): string {
 }
 
 function secureResponse(
-  response: import("node:http").ServerResponse,
+  response: ServerResponse,
   status: number,
   html: string,
 ): void {
   response.writeHead(status, {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-store",
-    "Pragma": "no-cache",
+    Pragma: "no-cache",
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
     "Content-Security-Policy":
@@ -106,10 +107,7 @@ export async function completeOAuthCallback(
     throw new Error("EVE SSO callback did not contain exactly one code");
   }
 
-  const token = await sso.exchangeAuthorizationCode(
-    codes[0],
-    codeVerifier,
-  );
+  const token = await sso.exchangeAuthorizationCode(codes[0], codeVerifier);
   if (!token.refreshToken) {
     throw new Error("EVE SSO did not provide a refresh token");
   }
@@ -139,7 +137,10 @@ async function openBrowser(url: string): Promise<void> {
 
 export async function authorizeWithLocalCallback(
   config: Pick<AppConfig, "redirectUri">,
-  sso: Pick<EveSsoClient, "createAuthorizationRequest" | "exchangeAuthorizationCode">,
+  sso: Pick<
+    EveSsoClient,
+    "createAuthorizationRequest" | "exchangeAuthorizationCode"
+  >,
   vault: Pick<RefreshTokenVault, "write">,
   options: {
     timeoutMs?: number;
@@ -156,12 +157,20 @@ export async function authorizeWithLocalCallback(
     const server = createServer((request, response) => {
       void (async () => {
         if (request.socket.remoteAddress !== "127.0.0.1") {
-          secureResponse(response, 403, "<h1>Local callback rejected</h1><p>This callback is available only on this computer.</p>");
+          secureResponse(
+            response,
+            403,
+            "<h1>Local callback rejected</h1><p>This callback is available only on this computer.</p>",
+          );
           return;
         }
 
         if (request.method !== "GET" || !request.url) {
-          secureResponse(response, 405, "<h1>Invalid callback</h1><p>Use the callback opened by EVE SSO.</p>");
+          secureResponse(
+            response,
+            405,
+            "<h1>Invalid callback</h1><p>Use the callback opened by EVE SSO.</p>",
+          );
           return;
         }
 
@@ -169,7 +178,11 @@ export async function authorizeWithLocalCallback(
         try {
           callbackUrl = new URL(request.url, config.redirectUri);
         } catch {
-          secureResponse(response, 400, "<h1>Invalid callback</h1><p>The callback URL could not be parsed.</p>");
+          secureResponse(
+            response,
+            400,
+            "<h1>Invalid callback</h1><p>The callback URL could not be parsed.</p>",
+          );
           return;
         }
 
@@ -188,7 +201,11 @@ export async function authorizeWithLocalCallback(
           ) ||
           callbackUrl.searchParams.getAll("state").length !== 1
         ) {
-          secureResponse(response, 400, "<h1>Authorization not accepted</h1><p>The security state did not match. Return to the EVE Ledger terminal and retry the login.</p>");
+          secureResponse(
+            response,
+            400,
+            "<h1>Authorization not accepted</h1><p>The security state did not match. Return to the EVE Ledger terminal and retry the login.</p>",
+          );
           return;
         }
 
