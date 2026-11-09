@@ -11,7 +11,7 @@
 
 ## Current implementation gaps
 
-- The local EVE SSO authorization-code/browser callback bootstrap is not implemented. The sync command requires an already-authorized refresh token for the corporation wallet scope.
+- Native EVE SSO PKCE authorization and the loopback callback are implemented in code; registration and a real authorized login against the user's EVE SSO application remain unvalidated.
 - The implementation has not yet been exercised with the user's live corporation ID, ESI application, corporation role, or actual wallet responses.
 - PostgreSQL 16 migrations and transactional persistence integration tests pass in GitHub Actions; migrations have been applied twice successfully.
 - GitHub Actions quality gates are green, and dependency installation is reproducible from the committed lockfile with `npm ci`.
